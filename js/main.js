@@ -48,7 +48,8 @@
 
   /* ---------- 운세 ---------- */
   const today = new Date();
-  const PROFILE_KEY = "byeoljaripan.profile", CARD_KEY = "byeoljaripan.cards";
+  const PROFILE_KEY = "byeoljaripan.profile";
+  try { localStorage.removeItem("byeoljaripan.cards"); } catch (err) {}
   const loadJSON = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
   // 생일·성별은 저장하지 않는다: 새로고침하면 다시 입력 (예전에 저장된 값도 지움)
   try { localStorage.removeItem(PROFILE_KEY); localStorage.removeItem("byeolnuri.gender"); } catch (err) {}
@@ -96,6 +97,7 @@
 
   function renderChart() {
     Pro.update({ profile });
+    $("#chart-empty").hidden = !!profile;
     renderBasis();
     if (!profile) return;
     const { birth } = profile;
@@ -193,47 +195,11 @@
         <div><dt>행운의 물건</dt><dd>${L.item}</dd></div>
         <div><dt>잘 맞는 별자리</dt><dd>${L.match.glyph} ${L.match.ko}</dd></div>
       </dl>`;
-    renderCards(date);
     Pro.update({ sign: current, offset: dayOffset });
     document.querySelectorAll(".basis-btn").forEach((x) => x.setAttribute("aria-pressed", Number(x.dataset.sign) === current));
   }
   bindChartTips($("#reading-out"));
   ["#week-out", "#month-out", "#year-out", "#chart-result", "#transits"].forEach((sel) => $(sel) && bindChartTips($(sel)));
-
-  /* ----- 별 카드 ----- */
-  function renderCards(date) {
-    const key = `${dateKey(date)}:${SIGNS[current].id}`;
-    const picked = loadJSON(CARD_KEY, {})[key];
-    const cards = starCardsFor(current, date);
-    const row = $("#card-row");
-    row.replaceChildren();
-    $("#cards-intro").textContent = picked == null
-      ? `${SIGNS[current].ko}의 ${date.getMonth() + 1}월 ${date.getDate()}일 카드입니다. 마음이 가는 한 장을 고르세요. 하루에 한 번만 뒤집을 수 있습니다.`
-      : "오늘의 카드를 이미 뒤집었습니다. 내일 다시 오세요.";
-    cards.forEach((c, i) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "star-card" + (picked === i ? " is-open" : picked != null ? " is-dim" : "");
-      b.disabled = picked != null;
-      b.setAttribute("aria-label", picked === i ? `${c.star} 카드: ${c.msg}` : `${i + 1}번 카드 뒤집기`);
-      b.innerHTML = `<span class="star-card-inner">
-        <span class="star-card-back" aria-hidden="true"><svg class="star-card-mark" viewBox="0 0 40 40" width="44" height="44"><path d="M20 2 L23.5 16.5 L38 20 L23.5 23.5 L20 38 L16.5 23.5 L2 20 L16.5 16.5 Z" fill="currentColor"/></svg></span>
-        <span class="star-card-front"><span class="star-card-label">오늘의 별</span><span class="star-card-star">${c.star}</span><span class="star-card-con">${c.con}</span></span>
-      </span>`;
-      b.addEventListener("click", () => {
-        const all = loadJSON(CARD_KEY, {});
-        all[key] = i;
-        localStorage.setItem(CARD_KEY, JSON.stringify(all));
-        renderCards(date);
-      });
-      row.appendChild(b);
-    });
-    let out = $("#card-msg");
-    if (!out) { out = document.createElement("div"); out.id = "card-msg"; out.className = "card-msg"; row.after(out); }
-    const c = picked != null ? cards[picked] : null;
-    out.hidden = !c;
-    out.innerHTML = c ? `<p class="card-msg-head"><b>${c.star}</b> <span>${c.con}</span></p><p>${c.msg}</p>` : "";
-  }
 
   /* ----- 궁합 ----- */
   bind("#compat-form", "submit", (e) => {
@@ -289,7 +255,7 @@
     if (e.target.closest("[data-edit-birth]") || e.target.closest("[data-go-start]")) {
       $("#hero-me").hidden = true; $("#hero-start").hidden = false;
       if (profile) {
-        $("#start-date").value = $("#birth-date").value; $("#start-time").value = $("#birth-time").value;
+        $("#start-date").value = $("#birth-date").value; $("#start-time").value = $("#birth-time").value; $("#start-gender").value = $("#birth-gender").value;
       }
       $("#hero").scrollIntoView({ behavior: "smooth", block: "start" });
       $("#start-date").focus({ preventScroll: true });

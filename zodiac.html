@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611180122">
+  <link rel="stylesheet" href="css/style.css?v=202611180127">
 </head>
 <body>
   <canvas id="backdrop" aria-hidden="true"></canvas>
@@ -69,11 +69,6 @@
         <article class="sheet" id="reading-out" aria-live="polite"></article>
         <section class="pro-box" id="transits"></section>
         <section class="pro-box" id="sky-now"></section>
-        <section class="cards" aria-labelledby="cards-title">
-          <h3 id="cards-title">오늘의 별 카드</h3>
-          <p class="cards-intro" id="cards-intro">마음이 가는 카드 한 장을 고르세요. 하루에 한 번만 뒤집을 수 있습니다.</p>
-          <div class="card-row" id="card-row"></div>
-        </section>
           <details class="plate-more" id="plate-more">
           <summary>별자리 원판 · 다른 별자리 운세 보기</summary>
           <div class="reading-plate">
@@ -117,7 +112,8 @@
             <h3 id="chart-title">내 별 지도</h3>
             <p>태어난 순간 태양, 달, 동쪽 지평선이 있던 별자리를 계산합니다. 시각을 모르면 상승궁은 비워 둡니다.</p>
           </div>
-          <form class="chart-form" id="chart-form">
+          <p class="chart-empty" id="chart-empty">생년월일을 입력하면 내 별 지도가 만들어져요. <button type="button" class="btn btn-ink" data-go-start>생년월일 넣기</button></p>
+          <form class="chart-form" id="chart-form" hidden>
             <label>생년월일 <input type="date" id="birth-date" required></label>
             <label>태어난 시각 <input type="time" id="birth-time"></label>
             <label>성별 <select id="birth-gender"><option value="">선택 안 함</option><option value="f">여자</option><option value="m">남자</option></select></label>
@@ -153,25 +149,25 @@
     <p>운세는 재미로 즐겨 주세요. 행성 위치는 NASA JPL 궤도 요소와 Meeus의 계산식으로 구했고(수 분각 정밀도), 해설은 서양 점성술의 열대 황도와 홀사인 하우스를 따릅니다.</p>
   </footer>
 
-  <script src="js/data.js?v=202611180122"></script>
-  <script src="js/sky-data.js?v=202611180122"></script>
-  <script src="js/sky-ko.js?v=202611180122"></script>
-  <script src="js/astro.js?v=202611180122"></script>
-  <script src="js/milkyway-data.js?v=202611180122"></script>
-  <script src="js/milkyway.js?v=202611180122"></script>
-  <script src="js/wheel.js?v=202611180122"></script>
-  <script src="js/astrology.js?v=202611180122"></script>
-  <script src="js/fortune.js?v=202611180122"></script>
-  <script src="js/places-data.js?v=202611180122"></script>
-  <script src="js/places.js?v=202611180122"></script>
-  <script src="js/ephemeris.js?v=202611180122"></script>
-  <script src="js/astro-text.js?v=202611180122"></script>
-  <script src="js/charts.js?v=202611180122"></script>
-  <script src="js/share.js?v=202611180122"></script>
-  <script src="js/stars-data.js?v=202611180122"></script>
-  <script src="js/pro.js?v=202611180122"></script>
-  <script src="js/main.js?v=202611180122"></script>
-  <script src="js/backdrop.js?v=202611180122"></script>
-  <script src="js/glossary.js?v=202611180122"></script>
+  <script src="js/data.js?v=202611180127"></script>
+  <script src="js/sky-data.js?v=202611180127"></script>
+  <script src="js/sky-ko.js?v=202611180127"></script>
+  <script src="js/astro.js?v=202611180127"></script>
+  <script src="js/milkyway-data.js?v=202611180127"></script>
+  <script src="js/milkyway.js?v=202611180127"></script>
+  <script src="js/wheel.js?v=202611180127"></script>
+  <script src="js/astrology.js?v=202611180127"></script>
+  <script src="js/fortune.js?v=202611180127"></script>
+  <script src="js/places-data.js?v=202611180127"></script>
+  <script src="js/places.js?v=202611180127"></script>
+  <script src="js/ephemeris.js?v=202611180127"></script>
+  <script src="js/astro-text.js?v=202611180127"></script>
+  <script src="js/charts.js?v=202611180127"></script>
+  <script src="js/share.js?v=202611180127"></script>
+  <script src="js/stars-data.js?v=202611180127"></script>
+  <script src="js/pro.js?v=202611180127"></script>
+  <script src="js/main.js?v=202611180127"></script>
+  <script src="js/backdrop.js?v=202611180127"></script>
+  <script src="js/glossary.js?v=202611180127"></script>
 </body>
 </html>

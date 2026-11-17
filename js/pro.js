@@ -516,7 +516,7 @@ const Pro = (() => {
         </dl>
       </details>`;
     box.innerHTML = `
-      <p class="chart-who">${b.y}년 ${b.m}월 ${b.d}일${N.known ? ` ${b.hh}시 ${b.mm}분` : " (시각 모름: 정오 기준, 상승궁·하우스는 태양 기준)"}, ${esc(b.place || "")}</p>
+      <p class="chart-who">${b.y}년 ${b.m}월 ${b.d}일${N.known ? ` ${b.hh}시 ${b.mm}분` : " (시각 모름: 정오 기준, 상승궁·하우스는 태양 기준)"}, ${esc(b.place || "")} <button type="button" class="link-btn" data-edit-birth>다시 입력</button></p>
       ${persona}
       <details class="natal-more"><summary>출생 차트 자세히 보기</summary>
       <div class="natal-top">

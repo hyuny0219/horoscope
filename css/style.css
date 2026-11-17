@@ -1050,3 +1050,5 @@ p > .ev-ic { position: static; display: inline-block; width: auto; margin-right:
 .st-gender button.on { background: rgba(247, 222, 154, .2); border-color: rgba(247, 222, 154, .6); color: var(--brass-light); }
 .st-grid { display: grid; grid-template-columns: 1fr; gap: .8rem; margin-bottom: .8rem; }
 @media (min-width: 720px) { .st-grid { grid-template-columns: 1fr 1fr; } }
+.chart-form[hidden], .chart-empty[hidden] { display: none; }
+.chart-empty { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; margin: 1rem 0; color: var(--wall-muted); }
