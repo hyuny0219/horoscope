@@ -128,6 +128,8 @@
     current = i; wheel.goToSign(i); renderReading();
   });
 
+  // 내 차트의 흐름(-2~2)과 그날의 기본 점수(1~5)를 섞는다. 오늘 카드와 7일 그래프가 같은 식을 쓴다
+  const personalScore = (base, mod) => Math.max(1, Math.min(5, Math.round(3 + mod * 0.6 + (base - 3) * 0.8)));
   /* ----- 운세 해설지 ----- */
   function renderReading() {
     document.querySelectorAll(".day-tab").forEach((t) => t.setAttribute("aria-pressed", Number(t.dataset.offset) === dayOffset));
@@ -142,11 +144,20 @@
     const mods = mineSign ? Pro.personalMods(date.getTime()) : null;
     if (mods) {
       for (const c of f.categories) {
-        const sc = Math.max(1, Math.min(5, Math.round(3 + mods[c.key] * 1.2 + (c.score - 3) * 0.4)));
+        const sc = personalScore(c.score, mods[c.key]);
         if (sc !== c.score) { const arr = FORTUNE_TEXT[c.key][tierOf(sc)]; c.text = arr[hashString(dateKey(date) + c.key) % arr.length]; c.score = sc; }
       }
-      f.week.forEach((d) => { if (d.off === 0) d.score = f.categories[0].score; });
     }
+    // 7일 흐름은 어떤 날을 고르든 '실제 오늘' 기준 같은 그래프 (고른 날만 점으로 표시)
+    const personal = (d) => {
+      let sc = dayScores(current, d, mine).overall;
+      if (mods) { const m = Pro.personalMods(d.getTime()); sc = personalScore(sc, m.overall); }
+      return sc;
+    };
+    f.week = [-3, -2, -1, 0, 1, 2, 3].map((off) => {
+      const d = new Date(today); d.setDate(today.getDate() + off);
+      return { off, sel: off === dayOffset, date: d, score: off === dayOffset ? f.categories[0].score : personal(d) };
+    });
     const [overall, ...rest] = f.categories;
     const L = f.lucky;
     const wk = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
@@ -175,7 +186,7 @@
 
       <div class="r-charts">
         <figure><figcaption>시간대별 흐름</figcaption>${slotChart(f.slots, f.best)}</figure>
-        <figure><figcaption>앞뒤 사흘 총운</figcaption>${weekChart(f.week)}</figure>
+        <figure><figcaption>이번 주 총운 흐름</figcaption>${weekChart(f.week)}</figure>
       </div>
 
       <div class="r-cats">

@@ -33,14 +33,14 @@ function weekChart(week) {
   const x = (i) => left + ((right - left) * i) / (week.length - 1);
   const y = (s) => base - ((base - top) * (s - 1)) / 4;
   const pts = week.map((d, i) => `${x(i).toFixed(1)},${y(d.score).toFixed(1)}`).join(" ");
-  const ti = week.findIndex((d) => d.off === 0);
+  let ti = week.findIndex((d) => d.sel); if (ti < 0) ti = week.findIndex((d) => d.off === 0);
   const step = (right - left) / (week.length - 1);
   const hits = week.map((d, i) => {
     const label = d.off === 0 ? "오늘" : `${d.date.getMonth() + 1}/${d.date.getDate()}`;
     return `<g class="hit" data-tip="${label} (${days[d.date.getDay()]}) 총운 ${d.score}/5" data-x="${x(i)}">
       <rect x="${x(i) - step / 2}" y="0" width="${step}" height="${H}" fill="transparent"/>
       <line class="crosshair" x1="${x(i)}" x2="${x(i)}" y1="${top - 6}" y2="${base}" stroke="${CHART_GRID}"/>
-      <text x="${x(i)}" y="${base + 18}" text-anchor="middle" class="${d.off === 0 ? "ct-strong" : "ct"}">${d.off === 0 ? "오늘" : days[d.date.getDay()]}</text>
+      <text x="${x(i)}" y="${base + 18}" text-anchor="middle" class="${i === ti ? "ct-strong" : "ct"}">${d.off === 0 ? "오늘" : d.off === -1 ? "어제" : d.off === 1 ? "내일" : days[d.date.getDay()]}</text>
     </g>`;
   }).join("");
   const table = `<table class="sr-only"><caption>7일 총운 흐름</caption>${week.map((d) => `<tr><th>${d.date.getMonth() + 1}월 ${d.date.getDate()}일</th><td>${d.score}점</td></tr>`).join("")}</table>`;
