@@ -84,6 +84,7 @@
     const pl = birthPick.get();
     const birth = WorldPlace.toBirth(v, $("#birth-time").value, pl);
     birth.city = pl.city;
+    try { localStorage.setItem("byeolnuri.gender", $("#birth-gender").value); } catch (err) {}
     profile = { birth, chart: birthChart(birth) };
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     current = profile.chart.sun;
@@ -264,6 +265,7 @@
 
 
   Pro.init();
+  try { const g = localStorage.getItem("byeolnuri.gender") || ""; ["#birth-gender", "#start-gender"].forEach((id) => { const el = $(id); if (el) el.value = g; }); } catch (err) {}
 
   /* ---------- 시작 화면: 생년월일부터 ---------- */
   bind("#start-form", "submit", (e) => {
@@ -271,6 +273,7 @@
     if (!$("#start-date").value) return;
     $("#birth-date").value = $("#start-date").value;
     $("#birth-time").value = $("#start-time").value;
+    $("#birth-gender").value = $("#start-gender").value;
     birthPick.set(startPick.get());
     $("#chart-form").requestSubmit();
     $("#hero").scrollIntoView({ behavior: "smooth", block: "start" });

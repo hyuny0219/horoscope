@@ -449,8 +449,7 @@ const Pro = (() => {
       <div class="st-alike"><p class="st-k">🪞 나와 별자리가 닮은 스타</p>
         <ul>${alike.map((c) => `<li><span class="st-name">${c.name}</span><span class="st-meta">${c.job} · ${born(c)}</span><span class="st-tags">${why(c)}, 타고난 분위기와 성향이 닮았습니다</span></li>`).join("")}</ul>
         <p class="muted small">얼굴 생김새가 아니라 출생 차트가 닮은 사람입니다. 같은 별자리 배치는 비슷한 분위기와 매력으로 드러난다고 봅니다.</p></div>
-      <div class="st-gender">나는 <button type="button" data-gender="f" class="${gender === "f" ? "on" : ""}">여자</button><button type="button" data-gender="m" class="${gender === "m" ? "on" : ""}">남자</button><button type="button" data-gender="" class="${!gender ? "on" : ""}">선택 안 함</button>
-        <span class="muted small">${gender ? "동성·이성으로 나눠 보여 드려요" : "고르면 동성·이성으로 나눠 보여 드려요"}</span></div>
+      ${gender ? "" : `<p class="muted small st-gender">'내 차트'에서 성별을 고르면 동성·이성으로 나눠 보여 드려요.</p>`}
       <div class="st-grid">
         ${order.map((g) => box(`💞 가장 잘 맞는 ${label(g)} 스타`, "is-best", pick(g, true), "good")).join("")}
         ${order.map((g) => box(`⚡ 별자리가 엇갈리는 ${label(g)} 스타`, "is-worst", pick(g, false), "bad")).join("")}
@@ -458,11 +457,6 @@ const Pro = (() => {
       <p class="muted small">점수는 '궁합' 탭과 같은 방식(두 사람의 행성이 이루는 각도)으로 계산했습니다. 엇갈린다는 건 서로 다른 리듬을 가졌다는 뜻일 뿐, 실제 사람에 대한 평가가 아닙니다.</p>
     </section>`;
   }
-  document.addEventListener("click", (e) => {
-    const b = e.target.closest(".st-gender [data-gender]"); if (!b) return;
-    try { localStorage.setItem(GENDER_KEY, b.dataset.gender); } catch (err) {}
-    const sec = b.closest(".stars"); if (sec && state.natal) { const tmp = document.createElement("div"); tmp.innerHTML = starsSection(state.natal); sec.replaceWith(tmp.firstElementChild); }
-  });
 
   function renderNatal() {
     const box = $("#chart-result"), N = state.natal;
