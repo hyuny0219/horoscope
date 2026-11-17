@@ -953,3 +953,32 @@ button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
   #sky-now > .moon-box, #sky-now > .ev-list, #sky-now > p { grid-column: 1; }
   #sky-now > .table-wrap { grid-column: 2; grid-row: 2 / span 4; }
 }
+
+/* 내 차트: 당신은 이런 사람 */
+.persona { margin: 0 0 1.25rem; padding: 1.4rem 1.5rem; border: 1px solid rgba(247, 222, 154, 0.35); background: radial-gradient(circle at 100% 0%, rgba(247, 222, 154, 0.1), transparent 55%), rgba(14, 18, 34, 0.6); }
+.persona-kicker { margin: 0; font-size: 0.8rem; color: var(--brass-light); }
+.persona-title { margin: 0.2rem 0 1rem; font-family: var(--serif); font-weight: 700; font-size: clamp(1.4rem, 4.5vw, 2rem); line-height: 1.35; }
+.persona-big3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 1.5rem; }
+.persona-big3 > div { padding-top: 0.7rem; border-top: 1px solid var(--brass); }
+.persona-big3 p { margin: 0; line-height: 1.75; font-size: 0.95rem; }
+.pb-k { font-size: 0.8rem !important; color: var(--wall-muted); margin-bottom: 0.35rem !important; }
+.persona-el { margin: 1rem 0 0; line-height: 1.75; }
+.persona-list { list-style: none; padding: 0; margin: 1.1rem 0 0; display: grid; gap: 0.5rem; }
+.persona-list li { display: grid; grid-template-columns: 12rem 1fr; gap: 0.8rem; line-height: 1.6; font-size: 0.95rem; }
+.pl-k { color: var(--wall-muted); font-size: 0.85rem; }
+.legend, .natal-more { margin: 0 0 1.25rem; border: 1px solid var(--hair); background: rgba(14, 18, 34, 0.45); }
+.legend > summary, .natal-more > summary { cursor: pointer; padding: 0.85rem 1.1rem; min-height: 2.8rem; list-style: none; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; }
+.legend > summary::before, .natal-more > summary::before { content: "▸"; color: var(--brass-light); transition: transform 0.2s; }
+.legend[open] > summary::before, .natal-more[open] > summary::before { transform: rotate(90deg); }
+.legend > summary::-webkit-details-marker, .natal-more > summary::-webkit-details-marker { display: none; }
+.legend dl { margin: 0; padding: 0 1.1rem 1rem; display: grid; gap: 0.8rem; }
+.legend dt { font-weight: 600; font-family: var(--glyph), var(--sans); color: var(--brass-light); }
+.legend dd { margin: 0.15rem 0 0; line-height: 1.7; font-size: 0.9rem; }
+.natal-more > *:not(summary) { margin-left: 1.1rem; margin-right: 1.1rem; }
+.natal-more > .natal-list:last-child, .natal-more > .ev-list:last-child { margin-bottom: 1.1rem; }
+@media (max-width: 720px) {
+  .persona { padding: 1.1rem 1rem; }
+  .persona-big3 { grid-template-columns: 1fr; }
+  .persona-list li { grid-template-columns: 1fr; gap: 0.1rem; }
+  .natal-more > *:not(summary) { margin-left: 0.7rem; margin-right: 0.7rem; }
+}

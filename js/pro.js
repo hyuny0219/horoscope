@@ -346,8 +346,40 @@ const Pro = (() => {
     }
     state.birthStar = birthStar; state.real = real;
     const placeQ = `&lat=${b.lat}&lon=${b.lon}&place=${encodeURIComponent(b.place || "")}`;
+    // ---------- 당신은 이런 사람 (쉬운 말) ----------
+    const domEl = Object.entries(elem).sort((x, y) => y[1] - x[1]);
+    const lackEl = domEl.filter(([, v]) => v / tot < 0.12).map(([k]) => k);
+    const bySign = {}; for (const p of N.points.filter((p) => !["uranus", "neptune", "pluto"].includes(p.id))) (bySign[p.sign] = bySign[p.sign] || []).push(p);
+    const stellium = Object.entries(bySign).find(([, ps]) => ps.length >= 3);
+    const sunS = N.sky.sun.sign, moonS = N.sky.moon.sign, ascS = N.asc ? N.asc.sign : null;
+    const persona = `
+      <section class="persona">
+        <p class="persona-kicker">별자리로 본 당신</p>
+        <h3 class="persona-title">${SIGN_PLAIN[sunS]}을 가진 사람</h3>
+        <div class="persona-big3">
+          <div><p class="pb-k">겉으로 드러나는 나 · 태양 ${signTag(sunS)}</p><p>${SIGNS[sunS].traits}</p></div>
+          <div><p class="pb-k">속마음 · 달 ${signTag(moonS)}</p><p>마음 깊은 곳은 ${SIGN_PLAIN[moonS]}으로 움직입니다. <b>${MOON_NEED[moonS]}</b> 가장 편안해집니다.</p></div>
+          <div><p class="pb-k">첫인상 · 상승 ${ascS != null ? signTag(ascS) : "?"}</p><p>${ascS != null ? `처음 만난 사람들은 당신을 <b>${RISING_IN[ascS]}</b>으로 기억합니다.` : "태어난 시각을 넣으면 남들이 보는 첫인상까지 알려 드립니다."}</p></div>
+        </div>
+        <p class="persona-el"><b>${domEl[0][0]} 기운이 가장 강한 ${ELEMENT_PLAIN[domEl[0][0]].word}</b> — ${ELEMENT_PLAIN[domEl[0][0]].text}${lackEl.length ? ` ${ELEMENT_LACK[lackEl[0]]}` : ""}</p>
+        ${stellium ? `<p class="persona-el"><b>${SIGNS[stellium[0]].ko}에 별이 ${stellium[1].length}개 모여 있어요.</b> ${SIGN_PLAIN[stellium[0]]}이(가) 당신 인생의 큰 주제입니다.</p>`.replace("이(가)", josa(SIGN_PLAIN[stellium[0]], "이", "가")) : ""}
+        <ul class="persona-list">${["mercury", "venus", "mars", "jupiter", "saturn"].map((id) => { const p = N.sky[id]; return `<li><span class="pl-k">${PERSONA_ROLE[id]}</span><span>${SIGNS[p.sign].ko}처럼 <b>${SIGN_PLAIN[p.sign]}</b>${p.retro && ["mercury", "venus", "mars"].includes(id) ? " (속으로 오래 다듬는 편)" : ""}</span></li>`; }).join("")}</ul>
+      </section>
+      <details class="legend"><summary>차트의 기호는 이렇게 읽어요</summary>
+        <dl>
+          <div><dt>☉ ☽ ☿ ♀ ♂ …</dt><dd>행성 기호입니다. 태양 ☉ 달 ☽ 수성 ☿ 금성 ♀ 화성 ♂ 목성 ♃ 토성 ♄ 천왕성 ♅ 해왕성 ♆ 명왕성 ♇. 행성마다 맡은 성격(사랑, 의욕, 생각 등)이 있습니다.</dd></div>
+          <div><dt>사자자리 22°08′</dt><dd>그 행성이 별자리 안 어디쯤 있었는지입니다. 별자리 하나는 30°이고, 22°면 별자리의 끝 무렵입니다. 해석에는 별자리 이름만 보셔도 충분합니다.</dd></div>
+          <div><dt>℞ (역행)</dt><dd>태어날 때 그 행성이 지구에서 보기에 거꾸로 가는 것처럼 보였다는 뜻입니다. 점성술에서는 그 힘이 밖보다 안으로 향해, 천천히 오래 다듬어진다고 봅니다. 나쁜 뜻은 아닙니다.</dd></div>
+          <div><dt>공부와 여행 <small>9</small></dt><dd>하우스: 삶을 12개 영역(나 자신, 돈, 대화, 집, 연애, 일상, 파트너…)으로 나눈 것입니다. 그 행성의 힘이 삶의 어느 부분에서 주로 쓰이는지 알려 줍니다.</dd></div>
+          <div><dt>AC · MC</dt><dd>AC(상승점)는 태어난 순간 동쪽 지평선에 떠오르던 별자리로 첫인상을, MC(천정점)는 머리 위 별자리로 일과 사회적 목표를 봅니다. 정확한 태어난 시각이 있어야 계산됩니다.</dd></div>
+          <div><dt>원 안의 선</dt><dd>행성끼리 이루는 각도입니다. <span style="color:#7FA8FF">파란 선</span>은 서로 돕는 조화, <span style="color:#FF7A6A">붉은 선</span>은 긴장과 자극입니다.</dd></div>
+          <div><dt>△ □ ☍ ⚹ ☌</dt><dd>각도 기호입니다. △ 120°·⚹ 60°는 조화, □ 90°·☍ 180°는 긴장, ☌ 0°는 두 힘이 하나로 합쳐짐을 뜻합니다.</dd></div>
+        </dl>
+      </details>`;
     box.innerHTML = `
       <p class="chart-who">${b.y}년 ${b.m}월 ${b.d}일${N.known ? ` ${b.hh}시 ${b.mm}분` : " (시각 모름: 정오 기준, 상승궁·하우스는 태양 기준)"}, ${esc(b.place || "")}</p>
+      ${persona}
+      <details class="natal-more"><summary>출생 차트 자세히 보기</summary>
       <div class="natal-top">
         ${wheelSVG(N)}
         <div class="natal-side">
@@ -365,10 +397,11 @@ const Pro = (() => {
       <div class="table-wrap"><table class="sky-table"><thead><tr><th>천체</th><th>별자리와 도수</th><th>하우스</th></tr></thead><tbody>
         ${pts.map((p) => `<tr><th scope="row"><span class="pg">${BODY_KO[p.id].glyph}</span> ${BODY_KO[p.id].ko}</th><td>${signTag(p.sign)} <span class="dg">${deg(p.lon)}</span>${p.retro ? ' <span class="rx">℞</span>' : ""}</td><td>${p.house ? houseTag(p.house) : "-"}</td></tr>`).join("")}
       </tbody></table></div>
-      <h4 class="pro-h4">천체 해설</h4>
+      <h4 class="pro-h4">행성별 해설 <small class="muted">점성가가 읽는 방식</small></h4>
       <ul class="natal-list">${N.points.map((p) => `<li><b>${BODY_KO[p.id].glyph} ${BODY_KO[p.id].ko} · ${SIGNS[p.sign].ko}${p.retro ? " ℞" : ""}</b><br>${natalSentence(p)}</li>`).join("")}</ul>
       <h4 class="pro-h4">주요 각도</h4>
       <ul class="ev-list">${aspects.slice(0, 8).map(({ p, q, a }) => `<li><span class="ev-ic">${BODY_KO[p.id].glyph}${a.sym}${BODY_KO[q.id].glyph}</span><b>${BODY_KO[p.id].ko} ${a.ko} ${BODY_KO[q.id].ko}</b> <span class="muted small">orb ${a.orb.toFixed(1)}°</span><br><span class="small">${josaWord(BODY_KO[p.id].area, "과/와")} ${josaWord(BODY_KO[q.id].area, "이/가")} ${a.nature === "soft" ? "타고난 재능처럼 자연스럽게 함께 움직입니다. 힘들이지 않고 쓰는 강점이니, 의식적으로 꺼내 쓸수록 빛납니다" : a.nature === "hard" ? "서로 긴장을 주고받습니다. 평생 다듬어 가는 숙제이지만, 바로 이 긴장이 당신을 움직이는 원동력이 됩니다" : "하나로 녹아 강하게 드러납니다. 차트에서 가장 눈에 띄는 개성 중 하나입니다"}.</span></li>`).join("")}</ul>
+      </details>
       <section class="unique">
         <h4 class="pro-h4">별누리에서만 보는 내 하늘</h4>
         <p>${real === SIGNS[N.sky.sun.sign].ko
