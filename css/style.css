@@ -1070,3 +1070,25 @@ p > .ev-ic { position: static; display: inline-block; width: auto; margin-right:
 .syn-ev span { display: block; font-weight: 700; }
 .syn-tip { font-size: .88rem; }
 .syn-tip b { color: var(--brass-light); margin-right: .3rem; }
+
+/* 기간 운세 해설 */
+.pr { margin: .6rem 0 1rem; }
+.pr-sum { border: 1px solid rgba(247, 222, 154, .35); border-radius: 14px; padding: 1rem 1.1rem; background: radial-gradient(circle at 15% 0%, rgba(247, 222, 154, .12), transparent 55%), rgba(14, 18, 34, .6); }
+.pr-k { margin: 0; display: flex; align-items: center; gap: .6rem; font-weight: 700; color: var(--brass-light); font-size: 1.05rem; }
+.pr-lead { font-family: var(--serif); font-size: 1.02rem; line-height: 1.8; margin: .5rem 0; }
+.pr-grid { display: grid; gap: .8rem; margin: .9rem 0; }
+@media (min-width: 720px) { .pr-grid { grid-template-columns: 1fr 1fr; } }
+.pr-card { border: 1px solid var(--hair); border-radius: 12px; padding: .9rem 1rem; background: rgba(14, 18, 34, .55); line-height: 1.75; }
+.pr-card p { margin: .35rem 0 0; }
+.pr-ck { margin: 0 !important; display: flex; align-items: center; gap: .5rem; font-weight: 700; }
+.pr-why { font-size: .86rem; color: var(--wall-muted); border-left: 2px solid rgba(247, 222, 154, .35); padding-left: .6rem; }
+.pr-best { font-size: .88rem; }
+.pr-best b { color: var(--brass-light); margin-right: .35rem; }
+.pr-flow { list-style: none; padding: 0; margin: .4rem 0 1rem; display: grid; gap: .6rem; }
+.pr-flow li { display: grid; grid-template-columns: auto 1fr; column-gap: .7rem; row-gap: .2rem; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, .06); padding-bottom: .6rem; }
+.pf-k { font-weight: 700; font-size: .92rem; }
+.pf-t { grid-column: 1 / -1; font-size: .9rem; line-height: 1.7; }
+.pr-year-chart { max-width: 30rem; }
+.pr-todo { margin-top: 1rem; }
+.pr-lucky { margin-top: .8rem; }
+.pr-sky-h { margin-top: 1.6rem; padding-top: 1rem; border-top: 1px solid var(--hair); }

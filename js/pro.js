@@ -171,6 +171,122 @@ const Pro = (() => {
   }
 
   /* ---------- 3-1. 이번 주 ---------- */
+  /* ---------- 기간 운세 해설 (주·달·해) ----------
+   * 날마다 분야별 점수(내 차트가 있으면 개인화)를 평균하고, 그 기간 행성이 지나는 하우스로 가감한다 */
+  function periodReading(kind, days) {
+    const base = state.sign, N = state.natal, P = { week: "이번 주", month: "이번 달", year: "올해" }[kind];
+    const keys = ["overall", "love", "money", "work", "health"];
+    const moonProf = N ? { moon: N.sky.moon.sign } : null;
+    const daily = days.map((d) => {
+      const g = dayScores(base, d, moonProf), m = N ? personalMods(d.getTime() + 12 * 3600000) : null;
+      const v = {};
+      for (const k of keys) v[k] = m ? 3 + m[k] * 0.6 + (g[k] - 3) * 0.8 : g[k];
+      return { d, v };
+    });
+    const W = { sun: 0.35, mercury: 0.2, venus: 0.4, mars: 0.25, jupiter: 0.5, saturn: -0.3 };
+    const step = Math.max(1, Math.floor(days.length / 12));
+    const samples = days.filter((_, i) => i % step === 0);
+    const bonus = {}, why = {};
+    for (const k of keys) { bonus[k] = 0; why[k] = new Map(); }
+    for (const d of samples) {
+      const ms = d.getTime() + 12 * 3600000;
+      for (const id of Object.keys(W)) {
+        const h = houseOf(Math.floor(bodyLongitude(id, ms) / 30), base);
+        for (const k of keys) if (PERIOD_HOUSES[k].includes(h)) {
+          let w = W[id];
+          if (id === "mars" && k === "health") w = -0.15;
+          if (id === "mercury" && !["work", "money"].includes(k)) w = 0.1;
+          bonus[k] += w / samples.length;
+          if (!why[k].has(id)) why[k].set(id, h);
+        }
+      }
+    }
+    const score = {}, avg = (arr) => arr.reduce((a, x) => a + x, 0) / arr.length;
+    // 행성 가감은 평균적으로 +0.3쯤 되므로 그만큼 빼서 3점이 '보통'이 되게 맞춘다
+    for (const k of keys) bonus[k] -= 0.35;
+    for (const k of keys) score[k] = Math.max(1, Math.min(5, Math.round(avg(daily.map((x) => x.v[k])) + bonus[k])));
+    const tier = (s) => (s >= 4 ? "hi" : s === 3 ? "mid" : "lo");
+    const seed = (k) => hashString(`${kind}:${dateKey(days[0])}:${base}:${N ? "n" : "g"}:${k}`);
+    const pickOf = (arr, k) => arr[seed(k) % arr.length];
+    const pickN = (arr, n, k) => { const a = [...arr], out = []; let r = seed(k); while (out.length < n && a.length) { out.push(a.splice(r % a.length, 1)[0]); r = Math.floor(r / 7) + 13; } return out; };
+    const text = (k) => pickOf(PERIOD_TEXT[k][tier(score[k])], k).replaceAll("{p}는", josaWord(P, "은/는")).replaceAll("{p}", P);
+    // 좋은 때
+    const bestOf = (k) => {
+      if (kind === "year") {
+        const byM = new Map();
+        for (const x of daily) { const key = x.d.getFullYear() * 12 + x.d.getMonth(); (byM.get(key) || byM.set(key, []).get(key)).push(x.v[k]); }
+        const ms = [...byM.entries()].map(([key, arr]) => ({ key, m: key % 12, v: avg(arr) })).sort((a, b) => b.v - a.v);
+        return ms.slice(0, 2).sort((a, b) => a.key - b.key).map((x) => `${x.m + 1}월`).join("·");
+      }
+      const sorted = [...daily].sort((a, b) => b.v[k] - a.v[k]);
+      return kind === "week" ? fmtDay(sorted[0].d.getTime()) : sorted.slice(0, 2).map((x) => x.d.getDate()).sort((a, b) => a - b).map((x) => `${x}일`).join("·");
+    };
+    const KEY_PLANET = { overall: kind === "year" ? "jupiter" : "sun", love: "venus", money: kind === "year" ? "jupiter" : "venus", work: kind === "year" ? "saturn" : "sun", health: "mars" };
+    const reason = (k) => {
+      const list = [...why[k].entries()].filter(([id]) => kind === "year" ? ["jupiter", "saturn"].includes(id) : kind === "week" ? id !== "saturn" : true);
+      if (list.length) return list.slice(0, 2).map(([id, h]) => `${josaWord(BODY_KO[id].ko, "이/가")} ${HOUSE_TOPIC[h].short} 영역(${h}하우스)을 지나 ${PLANET_GIFT[id]}.`).join(" ");
+      const id = KEY_PLANET[k], h = houseOf(Math.floor(bodyLongitude(id, days[Math.floor(days.length / 2)].getTime()) / 30), base);
+      return `${josaWord(BODY_KO[id].ko, "은/는")} 지금 ${HOUSE_TOPIC[h].short} 영역(${h}하우스)에 있어, ${josaWord(PERIOD_AREA_KO[k], "은/는")} <b>${HOUSE_VIA[h]}</b> 풀립니다.`;
+    };
+    const marks = (s) => `<span class="marks" role="img" aria-label="5점 만점에 ${s}점">${[1, 2, 3, 4, 5].map((i) => `<span class="mark${i <= s ? " on" : ""}"></span>`).join("")}</span>`;
+    const t0 = tier(score.overall);
+    const best = bestOf("overall");
+    // 흐름: 달은 상·중·하순, 해는 월별 막대
+    let flow = "";
+    const SEG = { hi: "흐름이 활발합니다. 중요한 일정과 만남을 이때 잡으세요.", mid: "무난하게 흘러갑니다. 하던 일을 차분히 이어 가세요.", lo: "속도를 늦추고 컨디션과 일정을 먼저 챙기세요." };
+    const segLine = (label, xs) => {
+      const s = Math.max(1, Math.min(5, Math.round(avg(xs.map((x) => x.v.overall)) + bonus.overall)));
+      const top = keys.slice(1).map((k) => [k, avg(xs.map((x) => x.v[k]))]).sort((a, b) => b[1] - a[1])[0][0];
+      return `<li><span class="pf-k">${label}</span>${marks(s)}<span class="pf-t">${SEG[tier(s)]} 이 시기에는 <b>${PERIOD_AREA_KO[top]}</b>이 가장 좋습니다.</span></li>`;
+    };
+    if (kind === "month") {
+      const last = daily.length;
+      flow = `<h4 class="pro-h4">이달의 흐름</h4><ul class="pr-flow">
+        ${segLine("상순 (1~10일)", daily.slice(0, 10))}${segLine("중순 (11~20일)", daily.slice(10, 20))}${segLine(`하순 (21~${last}일)`, daily.slice(20))}</ul>`;
+    }
+    if (kind === "year") {
+      const byM = [];
+      for (const x of daily) { const key = x.d.getFullYear() * 12 + x.d.getMonth(); let e = byM.find((b) => b.key === key); if (!e) byM.push(e = { key, m: x.d.getMonth(), y: x.d.getFullYear(), xs: [] }); e.xs.push(x); }
+      const bars = byM.slice(0, 12).map((e) => ({ label: `${e.m + 1}월`, v: avg(e.xs.map((x) => x.v.overall)) }));
+      const lo = Math.min(...bars.map((b) => b.v)), hi = Math.max(...bars.map((b) => b.v)), Wd = 300, Hd = 120, bw = Wd / bars.length;
+      const svg = `<svg viewBox="0 0 ${Wd} ${Hd}" class="mini-chart pr-year-chart" role="img" aria-label="월별 총운 흐름">${bars.map((b, i) => {
+        const h = 16 + ((b.v - lo) / Math.max(0.01, hi - lo)) * 70, x = i * bw + 4;
+        return `<g class="hit" data-tip="${b.label} 총운"><rect x="${x}" y="${96 - h}" width="${bw - 8}" height="${h}" rx="3" fill="${b.v === hi ? "#F2C46B" : "#BD8730"}" opacity="${b.v === hi ? 1 : 0.75}"/><text x="${x + (bw - 8) / 2}" y="112" text-anchor="middle" class="ct">${b.label.replace("월", "")}</text></g>`; }).join("")}</svg>`;
+      const quarters = [0, 1, 2, 3].map((q) => byM.slice(q * 3, q * 3 + 3)).filter((g) => g.length);
+      flow = `<h4 class="pro-h4">월별 흐름</h4><figure class="pro-fig">${svg}<figcaption class="small muted">막대가 높을수록 총운이 좋은 달입니다. 가장 밝은 막대가 올해의 절정입니다.</figcaption></figure>
+        <ul class="pr-flow">${quarters.map((g) => segLine(`${g[0].m + 1}~${g[g.length - 1].m + 1}월`, g.flatMap((e) => e.xs))).join("")}</ul>`;
+    }
+    const doList = pickN(PERIOD_DO[t0], 3, "do"), dontList = pickN(PERIOD_DONT[t0], 2, "dont");
+    const kw = pickN(PERIOD_KEYWORDS[t0], 3, "kw");
+    const color = typeof LUCKY !== "undefined" ? pickOf(LUCKY.colors, "color") : null;
+    return `<section class="pr">
+      <div class="pr-sum pr-${t0}">
+        <p class="pr-k">${P}의 총운 ${marks(score.overall)}</p>
+        <p class="pr-lead">${text("overall")}</p>
+        <ul class="r-keywords">${kw.map((k) => `<li>${k}</li>`).join("")}</ul>
+        <p class="small muted">${N ? "내 출생 차트에 지금 행성들이 닿는 흐름을 반영했습니다." : `${SIGNS[base].ko} 기준 운세입니다. 생년월일을 넣으면 내 차트에 맞춰 바뀝니다.`}</p>
+      </div>
+      <div class="pr-grid">${keys.slice(1).map((k) => `<section class="pr-card pr-${tier(score[k])}">
+        <p class="pr-ck">${PERIOD_AREA_ICON[k]} ${PERIOD_AREA_KO[k]} ${marks(score[k])}</p>
+        <p>${text(k)}</p>
+        <p class="pr-why">${reason(k)}</p>
+        <p class="pr-best"><b>${kind === "year" ? "좋은 달" : "좋은 날"}</b> ${bestOf(k)}</p>
+      </section>`).join("")}</div>
+      ${flow}
+      <div class="r-todo pr-todo">
+        <p><span class="r-todo-label">${P} 해 볼 일</span>${doList.join(" · ")}</p>
+        <p><span class="r-todo-label">${P} 피할 것</span>${dontList.join(" · ")}</p>
+      </div>
+      <dl class="r-lucky pr-lucky">
+        <div><dt>${kind === "year" ? "가장 좋은 달" : "가장 좋은 날"}</dt><dd>${best.split("·")[0]}</dd></div>
+        ${color ? `<div><dt>행운의 색</dt><dd><span class="swatch" style="background:${color.hex}"></span>${color.name}</dd></div>` : ""}
+        <div><dt>행운의 숫자</dt><dd>${1 + (seed("num") % 45)}</dd></div>
+      </dl>
+      <h4 class="pro-h4 pr-sky-h">하늘에서 읽은 근거</h4>
+    </section>`;
+  }
+  const daysFrom = (start, n) => Array.from({ length: n }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); d.setHours(0, 0, 0, 0); return d; });
+
   function renderWeek() {
     const now = Date.now(), base = state.sign;
     const start = now, end = now + 7 * 86400000;
@@ -197,6 +313,7 @@ const Pro = (() => {
     const best = [...week].sort((a, b) => b.score - a.score)[0], worst = [...week].sort((a, b) => a.score - b.score)[0];
     $("#week-out").innerHTML = `
       <h3 class="pro-h">이번 주 운세 <small>${SIGNS[base].glyph} ${SIGNS[base].ko} · ${fmtDay(start)} ~ ${fmtDay(end - 86400000)}</small></h3>
+      ${periodReading("week", daysFrom(new Date(), 7))}
       <p class="lead">태양이 ${houseTag(sunH)}을 지나고 있습니다. ${HOUSE_FOCUS[sunH]}</p>
       <figure class="pro-fig"><figcaption>7일 흐름 (총운)</figcaption>${weekChart(week)}</figure>
       <p class="small">가장 좋은 날 <b>${fmtDay(best.date.getTime())}</b>, 조심할 날 <b>${fmtDay(worst.date.getTime())}</b></p>
@@ -236,6 +353,7 @@ const Pro = (() => {
     const retros = ["mercury", "venus", "mars"].filter((id) => bodySpeed(id, t0) < 0 || bodySpeed(id, t1) < 0 || ev.some((e) => e.body === id && e.type.startsWith("station")));
     $("#month-out").innerHTML = `
       <h3 class="pro-h">${m + 1}월 운세 <small>${SIGNS[base].glyph} ${SIGNS[base].ko}</small></h3>
+      ${periodReading("month", daysFrom(new Date(y, m, 1), days))}
       <p class="lead">태양이 ${houseTag(houseOf(sunStart, base))}${sunEnd !== sunStart ? `에서 ${houseTag(houseOf(sunEnd, base))}로 옮겨 갑니다` : "을 지납니다"}. ${HOUSE_FOCUS[houseOf(sunEnd, base)]}</p>
       ${lunations.map((e) => { const t = eventText(e), h = houseOf(e.sign, base); return `<p><span class="ev-ic">${t.icon}</span><b>${fmtDay(e.ms)} ${t.title}</b> — ${houseTag(h)}: ${e.type === "new" || e.type === "solarEclipse" ? "이 영역에서 새 출발을 계획하세요." : "이 영역의 일이 결실을 맺거나 정리됩니다."}</p>`; }).join("")}
       ${retros.length ? `<p class="small">역행: ${retros.map((id) => `${BODY_KO[id].ko} (${houseTag(houseOf(Math.floor(bodyLongitude(id, t0) / 30), base))})`).join(", ")} — 이 영역은 다시 보고 고치기에 좋습니다.</p>` : ""}
@@ -272,6 +390,7 @@ const Pro = (() => {
     const allEclipses = eventsBetween(t0, t1, { bodies: [] }).filter((e) => e.type.endsWith("Eclipse"));
     $("#year-out").innerHTML = `
       <h3 class="pro-h">앞으로 1년 <small>${SIGNS[base].glyph} ${SIGNS[base].ko} · ${fmtDay(t0)} ~</small></h3>
+      ${periodReading("year", daysFrom(new Date(), 365))}
       <div class="yr-grid">
         ${big("jupiter", "목성: 행운이 넓어지는 영역", "목성은 한 별자리에 약 1년 머물며 그 영역을 키웁니다.")}
         ${big("saturn", "토성: 시험과 성장의 영역", "토성은 약 2년 반 머물며 그 영역에서 책임과 결과를 요구합니다.")}

@@ -55,7 +55,7 @@ const callbacks = {
 const dome = new SkyView($("#dome"), callbacks);
 let sky = null;
 try {
-  const { Sky3D } = await import("./sky3d.js?v=202611180142");
+  const { Sky3D } = await import("./sky3d.js?v=202611180149");
   sky = new Sky3D($("#stage-3d"), callbacks);
   window.sky3d = sky; // 콘솔에서 살펴보기용
 } catch (err) {
