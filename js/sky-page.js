@@ -55,7 +55,7 @@ const callbacks = {
 const dome = new SkyView($("#dome"), callbacks);
 let sky = null;
 try {
-  const { Sky3D } = await import("./sky3d.js?v=202611172359");
+  const { Sky3D } = await import("./sky3d.js?v=202611180019");
   sky = new Sky3D($("#stage-3d"), callbacks);
   window.sky3d = sky; // 콘솔에서 살펴보기용
 } catch (err) {
@@ -355,6 +355,14 @@ function shiftForPop() {
   sky.setFocusShift(covers ? Math.max(0, (st.bottom - r.top) / 2 - 20) : 0);
 }
 addEventListener("resize", shiftForPop);
+/* PC: 오른쪽 설정판에 가리지 않게 3D 화면의 중심을 남은 영역 가운데로 */
+function shiftForConsole() {
+  if (!sky?.setSideShift) return;
+  const con = document.querySelector(".console"), st = $("#stage").getBoundingClientRect();
+  sky.setSideShift(getComputedStyle(con).position === "absolute" ? (st.right - con.getBoundingClientRect().left) / 2 : 0);
+}
+addEventListener("resize", shiftForConsole);
+shiftForConsole();
 on("#sky-pop-close", "click", () => {
   hidePop();
   showStar(null);

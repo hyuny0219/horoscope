@@ -864,3 +864,54 @@ button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
   .hero { padding-top: 1.25rem; }
   .room-title { margin-top: -0.75rem; }
 }
+
+/* ---------- PC 화면: 가운데 정렬 + 넓은 화면은 여러 단 ---------- */
+@media (min-width: 1024px) {
+  body:not(.page-sky) .site-head,
+  body:not(.page-sky) main > .hero,
+  body:not(.page-sky) main > .room,
+  body:not(.page-sky) .site-foot { max-width: 76rem; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+  body:not(.page-sky) main > .hero { max-width: 76rem; }
+  .room-reading .pro-panel > *, .room-reading .pro-panel { max-width: none; }
+  .pro-tabs { margin-left: 0; margin-right: 0; border-radius: 999px; border: 1px solid var(--hair); padding: 0.4rem; top: 0.6rem; }
+  .pro-tab { flex: 1 1 0; }
+
+  /* 시작 화면: 왼쪽 글, 오른쪽 입력 */
+  .hero-start { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 4rem; align-items: center; }
+  .hero-start > .hero-title, .hero-start > .show-text { grid-column: 1; }
+  .hero-start > .start-form, .hero-start > .hero-skip, .hero-start > .show-meta { grid-column: 2; }
+  .hero-start > .start-form { grid-row: 1 / span 2; margin: 0; align-self: center; padding: 1.75rem; background: rgba(14, 18, 34, 0.6); border: 1px solid var(--hair); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .hero-start > .hero-skip { grid-row: 3; } .hero-start > .show-meta { grid-row: 4; margin-top: 0.4rem; }
+  .hero-start > .hero-title { grid-row: 1; align-self: end; } .hero-start > .show-text { grid-row: 2; align-self: start; }
+
+  /* 오늘의 나: 카드 세 장을 나란히 */
+  .hero-me { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 2rem; align-items: end; }
+  .hero-me > .me-date, .hero-me > .me-title, .hero-me > .me-tags { grid-column: 1; }
+  .hero-me > .me-actions { grid-column: 2; grid-row: 1 / span 3; align-self: end; justify-content: flex-end; margin: 0 0 1.2rem; }
+  .hero-me > .me-list, .hero-me > .me-dd { grid-column: 1 / -1; }
+  .me-list { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
+  .me-list .pl-item { display: flex; flex-direction: column; }
+  .me-list .pl-why { margin-top: auto; padding-top: 0.5rem; }
+
+  /* 오늘 탭: 해설지와 '나에게 닿는 별'을 두 단으로 */
+  .pro-panel[data-panel="today"]:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 0 2rem; align-items: start; }
+  .pro-panel[data-panel="today"] > .reading-tools { grid-column: 1 / -1; }
+  .pro-panel[data-panel="today"] > .sheet { grid-column: 1; grid-row: 2 / span 2; }
+  .pro-panel[data-panel="today"] > #transits { grid-column: 2; grid-row: 2; }
+  .pro-panel[data-panel="today"] > #sky-now { grid-column: 2; grid-row: 3; }
+  .pro-panel[data-panel="today"] > .cards { grid-column: 1 / -1; }
+  .pro-panel[data-panel="today"] .pro-box { margin-bottom: 1.5rem; }
+  .card-row { grid-template-columns: repeat(3, minmax(0, 13rem)); }
+
+  /* 이번 주: 위는 요약과 그래프, 아래는 두 단 목록 */
+  #week-out, #month-out, #year-out { column-gap: 2.5rem; }
+  .pro-panel[data-panel="chart"] .chart-card { max-width: none; }
+  .natal-top { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 2.5rem; }
+  .natal-list { grid-template-columns: 1fr 1fr; column-gap: 2rem; }
+  .pro-panel[data-panel="compat"] .compat { max-width: none; }
+  .plate-more .hang { max-width: none; }
+}
+@media (min-width: 1400px) {
+  .yr-grid { grid-template-columns: 1fr 1fr; }
+  .cal-cell { min-height: 4.2rem; }
+}

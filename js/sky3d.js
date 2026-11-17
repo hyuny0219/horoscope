@@ -916,6 +916,8 @@ export class Sky3D {
 
   /* 화면 아래쪽을 팝업이 가릴 때, 보는 대상이 남은 영역 가운데에 오도록 화면 중심을 위로 올린다 (픽셀) */
   setFocusShift(px) { this.focusShiftTarget = Math.max(0, px || 0); }
+  /* PC에서 오른쪽 설정판이 가리는 만큼 화면 중심을 왼쪽으로 (px) */
+  setSideShift(px) { this.sideShift = Math.max(0, px || 0); }
 
   lookAtConstellation(id) {
     const c = this.constById?.[id];
@@ -1617,7 +1619,8 @@ export class Sky3D {
     const fsT = this.morph > 0.5 ? this.focusShiftTarget || 0 : 0;
     this.focusShift = (this.focusShift || 0) + (fsT - (this.focusShift || 0)) * (this.reduceMotion ? 1 : Math.min(1, dt * 6));
     const W0 = this.overlay.clientWidth, H0 = this.overlay.clientHeight;
-    if (this.focusShift > 0.5 && W0 && H0) cam.setViewOffset(W0, H0, 0, this.focusShift, W0, H0);
+    const sx = this.sideShift || 0;
+    if ((this.focusShift > 0.5 || sx > 0.5) && W0 && H0) cam.setViewOffset(W0, H0, sx, this.focusShift, W0, H0);
     else if (cam.view) cam.clearViewOffset();
     cam.updateProjectionMatrix();
     cam.updateMatrixWorld();
