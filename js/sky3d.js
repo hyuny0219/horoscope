@@ -801,7 +801,7 @@ export class Sky3D {
     if (!o || o.exiting || this.morph < 0.5) return;
     this.controls.target.copy(o.look || o.target);
     this.orbit = null;
-    this.controls.minDistance = Math.min(this.minDistFor, this.camera.position.distanceTo(this.controls.target) * 0.9);
+    this.controls.minDistance = 1e-7; // 가까이 갈 수 있는 한계는 확대(applyZoom)가 대상에 맞춰 정한다
     this.controls.enabled = true;
   }
 
@@ -824,42 +824,28 @@ export class Sky3D {
     const ds = near(sun, R + this.pxRadius(sun, rs));
     if (ds != null) consider("sun", sun, rs, ds * 0.8); // 태양(우리 동네)을 조금 더 잘 잡는다
     if (!best && !this.solar.visible) {
-      const i = this.nearestStar(x, y, R * 0.6);
-      if (i != null) best = { id: `star:${i}`, point: this.starPos(i, new THREE.Vector3(), 1), radius: 0 };
-    }
-    if (best) return best;
-    // 빈 곳: 그쪽 방향에서 가장 가까운 실제 별로 다가간다 (빈 공간으로 가면 아무것도 안 움직여서 멈춘 것 같다)
-    if (!this.solar.visible) {
-      const W0 = this.overlay.clientWidth, H0 = this.overlay.clientHeight, lim = Math.min(W0, H0) * 0.32, v = new THREE.Vector3();
-      let bi = null, bd = lim;
-      const camPos = this.camera.position, depth = Math.max(30 * LY, camPos.distanceTo(this.controls.target) * 4); // 너무 먼 별은 제외
+      // 손가락 바로 밑(약 R*0.5 px)에 잘 보이는 별이 있을 때만 그 별로 끌린다
+      const v = new THREE.Vector3(), camPos = this.camera.position;
+      let bi = null, bd = R * 0.5;
       for (let i = 0; i < SKY_STARS.length; i++) {
         if (!(this.starDist[i] > 0)) continue;
-        const p = this.starPos(i, v, 1);
-        // 지금 자리에서 잘 보이는 별만 (멀고 흐린 별 쪽으로 수천 광년 날아가 버리지 않게)
-        const dc = camPos.distanceTo(p);
-        if (dc > depth) continue;
-        const app = SKY_STARS[i][2] + 5 * Math.log10(Math.max(dc, 0.05) / Math.max(p.length(), 0.05));
-        if (app > 4.5) continue;
+        const p = this.starPos(i, v);
+        const app = SKY_STARS[i][2] + 5 * Math.log10(Math.max(camPos.distanceTo(p), 0.05) / Math.max(p.length(), 0.05));
+        if (app > 5) continue;
         const sp = this.toScreen(p);
         if (!sp) continue;
-        const d = Math.hypot(sp[0] - x, sp[1] - y) - (4.5 - app) * 6; // 밝게 보이는 별을 더
+        const d = Math.hypot(sp[0] - x, sp[1] - y) - Math.max(0, 3 - app) * 2;
         if (d < bd) { bd = d; bi = i; }
       }
-      if (bi != null) return { id: `star:${bi}`, point: this.starPos(bi, new THREE.Vector3(), 1), radius: 0 };
+      if (bi != null) best = { id: `star:${bi}`, point: this.starPos(bi, new THREE.Vector3(), 1), radius: 0 };
     }
-    // 그래도 없으면: 화면의 그 점을 지나는 시선이 회전 중심 깊이와 만나는 곳
+    if (best) return best;
+    // 빈 곳: 지도 앱처럼 손가락이 가리키는 바로 그 점으로 (화면의 그 점을 지나는 시선이 지금 보는 깊이와 만나는 곳)
     const cam = this.camera, W = this.overlay.clientWidth, H = this.overlay.clientHeight;
     const dir = new THREE.Vector3((x / W) * 2 - 1, 1 - (y / H) * 2, 0.5).unproject(cam).sub(cam.position).normalize();
     const fwd = new THREE.Vector3(); cam.getWorldDirection(fwd);
     const depth = Math.max(1e-6, this.controls.target.clone().sub(cam.position).dot(fwd)) / Math.max(0.05, dir.dot(fwd));
-    // 별 사이 빈 곳으로는 끝없이 다가가지 않는다 (아무것도 안 보이는 빈 공간에 갇히지 않게)
-    let nearest = Infinity;
-    if (!this.solar.visible) {
-      const v = new THREE.Vector3();
-      for (let i = 0; i < SKY_STARS.length; i++) if (this.starDist[i] > 0) nearest = Math.min(nearest, cam.position.distanceTo(this.starPos(i, v)));
-    }
-    return { id: null, point: cam.position.clone().addScaledVector(dir, depth), radius: 0, minD: isFinite(nearest) ? Math.max(0.5 * LY, nearest * 0.25) : 0 };
+    return { id: null, point: cam.position.clone().addScaledVector(dir, depth), radius: 0 };
   }
 
   /* factor < 1 이면 다가가고 > 1 이면 멀어진다. 실제 이동은 frame()에서 부드럽게 나눠서 한다 */
@@ -881,10 +867,11 @@ export class Sky3D {
     q.log -= step;
     if (Math.abs(q.log) < 1e-4) this.zoomQ = null;
     const cam = this.camera.position, tgt = this.controls.target, a = q.anchor;
+    if (step < 0 && this.focus && this.focus.id !== a.id) this.focus = null; // 다른 곳으로 다가가면 이전 초점은 놓는다
     const P = a.id && !a.id.startsWith("star:") ? this.bodyWorld(a.id) : a.point;
     const d = cam.distanceTo(P);
     // 가장 가까이: 천체면 그 크기에 맞춰, 아니면 아주 가까이까지
-    const minD = a.radius ? this.minDistForBody(a.id, a.radius) : a.id ? 0.01 : Math.max(2e-6, a.minD || 0), maxD = 1500 * LY; // 가장 멀리: 우리 둘레 별 동네가 한눈에 (더 멀면 별이 거의 안 보인다)
+    const minD = a.radius ? this.minDistForBody(a.id, a.radius) : a.id ? 0.01 : 2e-6, maxD = 1500 * LY; // 가장 멀리: 우리 둘레 별 동네가 한눈에 (더 멀면 별이 거의 안 보인다)
     let s = Math.exp(step);
     if (d * s < minD) { s = minD / d; this.zoomQ = null; }
     if (d * s > maxD) { s = maxD / d; this.zoomQ = null; }
@@ -1589,7 +1576,7 @@ export class Sky3D {
         if (o.exiting) { this.orbit = null; cam.position.set(0, 0, 0); }
         else {
           this.controls.target.copy(o.target);
-          this.controls.minDistance = this.minDistFor;
+          this.controls.minDistance = 1e-7;
           this.controls.enabled = true; this.orbit = null;
           this.controls.update();
         }
