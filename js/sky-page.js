@@ -174,7 +174,7 @@ function showDetail(c, quiet) {
   $("#detail-3d").hidden = !sky;
   $("#detail-3d").textContent = viewKind === "space" ? "지구로 돌아가기" : "입체로 보기";
   const z = $("#detail-zodiac");
-  if (sign) { z.hidden = false; z.href = `index.html?sign=${sign.id}#reading`; z.textContent = `${sign.ko} 운세 보기`; }
+  if (sign) { z.hidden = false; z.href = `zodiac.html?sign=${sign.id}#reading`; z.textContent = `${sign.ko} 운세 보기`; }
   else z.hidden = true;
   if (!quiet && matchMedia("(max-width: 1100px)").matches) box.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }

@@ -31,7 +31,7 @@
     plate.traits.textContent = s.traits;
     plate.myth.textContent = s.myth;
     plate.cta.textContent = `${s.ko} 운세 보기`;
-    plate.sky.href = `sky.html?c=${s.iau}`;
+    plate.sky.href = `index.html?c=${s.iau}`;
   }
 
   const wheel = new StarWheel($("#wheel"), { onChange: updatePlate });
