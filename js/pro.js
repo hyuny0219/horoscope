@@ -320,6 +320,75 @@ const Pro = (() => {
     return `<svg viewBox="-12 -12 ${S + 24} ${S + 24}" class="wheel-svg" role="img" aria-label="출생 차트 원형 그림">${g}</svg>`;
   }
 
+  /* 타고난 직업·재물·애정·건강운과 올해 흐름 */
+  function lifeAreas(N) {
+    const first = N.firstHouse, signOfHouse = (h) => (first + h - 1) % 12;
+    const inHouse = (h) => N.points.filter((p) => p.house === h && !["uranus", "neptune", "pluto"].includes(p.id));
+    const names = (ps) => ps.map((p) => BODY_KO[p.id].ko).join("·");
+    const mcSign = N.mc ? N.mc.sign : signOfHouse(10);
+    const cTen = inHouse(10), cTwo = inHouse(2), cSeven = inHouse(7), cFive = inHouse(5);
+    const V = N.sky.venus, M = N.sky.mars, J = N.sky.jupiter, S = N.sky.saturn;
+    // 올해 목성(넓어짐)·토성(다져짐)이 지나는 영역
+    const now = Date.now();
+    const jH = houseOf(Math.floor(bodyLongitude("jupiter", now) / 30), first), sH = houseOf(Math.floor(bodyLongitude("saturn", now) / 30), first);
+    const yr = (area) => {
+      const out = [];
+      if (YEAR_AREA[jH] === area) out.push(`<b>올해 목성이 ${HOUSE_TOPIC[jH].short} 영역을 지나</b> 이 분야에서 기회가 넓어지는 시기입니다.`);
+      if (YEAR_AREA[sH] === area) out.push(`<b>토성이 ${HOUSE_TOPIC[sH].short} 영역을 지나</b> 책임은 무겁지만 이 분야의 기반을 단단히 다지는 시기입니다.`);
+      return out.length ? `<p class="la-year">${out.join(" ")}</p>` : "";
+    };
+    const card = (icon, title, sub, body) => `<section class="la-card"><p class="la-k">${icon} ${title}</p><p class="la-sub">${sub}</p>${body}</section>`;
+    const career = card("💼", "직업운", `${N.mc ? "천정점(MC)" : "10번째 하우스"}이 ${signTag(mcSign)}`, `
+      <p>${CAREER_SIGN[mcSign][0]}에서 가장 빛납니다.</p>
+      <p class="la-fit"><b>어울리는 분야</b> ${CAREER_SIGN[mcSign][1]}</p>
+      ${cTen.length ? `<p>일의 자리(10하우스)에 ${josaWord(names(cTen), "이/가")} 있어, 일과 사회적 성취가 인생의 중심 주제입니다.</p>` : ""}
+      <p>일하는 태도는 토성이 있는 ${SIGNS[S.sign].ko}처럼 <b>${SIGN_PLAIN[S.sign]}</b>으로 결과를 만듭니다.</p>
+      ${yr("career")}`);
+    const money = card("💰", "재물운", `돈의 자리(2하우스)가 ${signTag(signOfHouse(2))}`, `
+      <p>${MONEY_SIGN[signOfHouse(2)]}</p>
+      ${cTwo.length ? `<p>돈의 자리에 ${josaWord(names(cTwo), "이/가")} 있어 재물이 인생에서 큰 화두입니다.</p>` : ""}
+      <p>행운의 별 목성은 ${HOUSE_TOPIC[J.house].short} 영역에 있어, <b>${HOUSE_TOPIC[J.house].long}</b>을(를) 통해 복이 들어옵니다.</p>
+      ${yr("money")}`.replace("을(를)", josa(HOUSE_TOPIC[J.house].long, "을", "를")));
+    const love = card("💗", "애정운", `금성 ${signTag(V.sign)} · 화성 ${signTag(M.sign)}`, `
+      <p>${LOVE_SIGN[V.sign]}</p>
+      <p class="la-fit"><b>끌리는 사람</b> ${ATTRACT_SIGN[M.sign]}</p>
+      <p class="la-fit"><b>인연이 되는 짝</b> ${PARTNER_SIGN[signOfHouse(7)]}${N.asc ? "" : " (태어난 시각을 넣으면 더 정확해집니다)"}</p>
+      ${cSeven.length ? `<p>짝의 자리(7하우스)에 ${josaWord(names(cSeven), "이/가")} 있어 결혼과 파트너십이 삶에서 중요한 의미를 갖습니다.</p>` : ""}
+      ${cFive.length ? `<p>연애의 자리(5하우스)에 ${josaWord(names(cFive), "이/가")} 있어 연애와 즐거움을 적극적으로 누립니다.</p>` : ""}
+      ${yr("love")}`);
+    const health = card("🌿", "건강운", `건강의 자리(6하우스)가 ${signTag(signOfHouse(6))}`, `
+      <p><b>신경 써야 할 곳</b> ${HEALTH_SIGN[signOfHouse(6)]}</p>
+      <p>에너지는 화성이 있는 ${SIGNS[M.sign].ko}처럼 <b>${SIGN_PLAIN[M.sign]}</b>의 리듬으로 쓸 때 가장 건강합니다.</p>`);
+    const Me = N.sky.mercury, nodeSign = N.sky.node.sign, nodeH = houseOf(nodeSign, first);
+    const study = card("📚", "학업·시험운", `수성 ${signTag(Me.sign)} · 배움의 자리 ${signTag(signOfHouse(9))}`, `
+      <p>${STUDY_SIGN[Me.sign]}</p>
+      ${inHouse(3).length || inHouse(9).length ? `<p>배움의 자리에 ${josaWord(names([...inHouse(3), ...inHouse(9)]), "이/가")} 있어 공부와 자격증이 삶에 큰 도움이 됩니다.</p>` : ""}
+      ${yr("study")}`);
+    const social = card("🤝", "대인관계운", `친구의 자리(11하우스)가 ${signTag(signOfHouse(11))}`, `
+      <p class="la-fit"><b>인연이 깊은 사람들</b> ${SOCIAL_SIGN[signOfHouse(11)]}</p>
+      <p>사람을 대할 때는 달이 있는 ${SIGNS[N.sky.moon.sign].ko}처럼 <b>${SIGN_PLAIN[N.sky.moon.sign]}</b>으로 다가갑니다.</p>
+      ${inHouse(11).length ? `<p>친구의 자리에 ${josaWord(names(inHouse(11)), "이/가")} 있어 모임과 인맥이 큰 기회가 됩니다.</p>` : ""}
+      ${yr("people")}`);
+    const home = card("🏠", "가정운", `집의 자리(4하우스)가 ${signTag(signOfHouse(4))}`, `
+      <p class="la-fit"><b>어울리는 가정</b> ${HOME_SIGN[signOfHouse(4)]}</p>
+      ${inHouse(4).length ? `<p>집의 자리에 ${josaWord(names(inHouse(4)), "이/가")} 있어 가족과 집이 인생의 중심에 있습니다.</p>` : ""}
+      ${yr("home")}`);
+    const travel = card("✈️", "해외·이동운", `먼 길의 자리(9하우스)가 ${signTag(signOfHouse(9))}`, `
+      <p>${TRAVEL_SIGN[signOfHouse(9)]}.</p>
+      ${inHouse(9).length ? `<p>먼 길의 자리에 ${josaWord(names(inHouse(9)), "이/가")} 있어 해외 생활이나 유학과 인연이 깊습니다.</p>` : ""}`);
+    const talent = card("✨", "타고난 재능", `태양 ${signTag(N.sky.sun.sign)} · 목성 ${signTag(J.sign)}`, `
+      <p class="la-fit"><b>가장 큰 무기</b> ${TALENT_SIGN[N.sky.sun.sign]}, 그리고 ${TALENT_SIGN[J.sign]}</p>
+      ${inHouse(5).length ? `<p>재능의 자리(5하우스)에 ${josaWord(names(inHouse(5)), "이/가")} 있어 창작과 표현으로 이름을 알릴 수 있습니다.</p>` : `<p>꾸준히 꺼내 쓸수록 커지는 재능입니다. 취미로 시작해도 좋습니다.</p>`}`);
+    const destiny = card("🧭", "인생의 방향", `달의 교점 ${signTag(nodeSign)} · ${HOUSE_TOPIC[nodeH].short} 영역`, `
+      <p>${NODE_SIGN[nodeSign]}</p>
+      <p class="muted small">달의 교점은 점성술에서 '이번 생에서 자라야 할 방향'으로 읽는 자리입니다.</p>`);
+    return `<section class="life-areas">
+      <h3 class="pro-h">타고난 운 <small>출생 차트에서 각 분야를 맡은 자리로 읽습니다${N.known ? "" : ". 태어난 시각이 없으면 태양 별자리를 기준으로 어림합니다"}</small></h3>
+      <div class="la-grid">${career}${money}${love}${health}${study}${social}${home}${travel}${talent}${destiny}</div>
+      <p class="muted small">언제 기회가 오는지는 '1년' 탭과 '이번 달' 탭의 날짜를 함께 보세요. 운세는 재미와 자기 성찰을 위한 참고입니다.</p>
+    </section>`;
+  }
+
   function renderNatal() {
     const box = $("#chart-result"), N = state.natal;
     if (!N) { box.hidden = true; return; }
@@ -365,6 +434,7 @@ const Pro = (() => {
         ${stellium ? `<p class="persona-el"><b>${SIGNS[stellium[0]].ko}에 별이 ${stellium[1].length}개 모여 있어요.</b> ${SIGN_PLAIN[stellium[0]]}이(가) 당신 인생의 큰 주제입니다.</p>`.replace("이(가)", josa(SIGN_PLAIN[stellium[0]], "이", "가")) : ""}
         <ul class="persona-list">${["mercury", "venus", "mars", "jupiter", "saturn"].map((id) => { const p = N.sky[id]; return `<li><span class="pl-k">${PERSONA_ROLE[id]}</span><span>${SIGNS[p.sign].ko}처럼 <b>${SIGN_PLAIN[p.sign]}</b>${p.retro && ["mercury", "venus", "mars"].includes(id) ? " (속으로 오래 다듬는 편)" : ""}</span></li>`; }).join("")}</ul>
       </section>
+      ${lifeAreas(N)}
       <details class="legend"><summary>차트의 기호는 이렇게 읽어요</summary>
         <dl>
           <div><dt>☉ ☽ ☿ ♀ ♂ …</dt><dd>행성 기호입니다. 태양 ☉ 달 ☽ 수성 ☿ 금성 ♀ 화성 ♂ 목성 ♃ 토성 ♄ 천왕성 ♅ 해왕성 ♆ 명왕성 ♇. 행성마다 맡은 성격(사랑, 의욕, 생각 등)이 있습니다.</dd></div>
