@@ -999,3 +999,21 @@ button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
 .la-pl { margin: -0.2rem 0 0.6rem; padding-left: 1.1rem; font-size: 0.92rem; line-height: 1.7; }
 .la-pl li { margin-bottom: 0.25rem; }
 @media (min-width: 1024px) { .la-grid { grid-template-columns: 1fr; } .la-card { padding: 1.4rem 1.6rem; } .la-card p { max-width: 62rem; } }
+
+/* 용어 풀이 */
+.term { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: help;
+  text-decoration: underline dotted rgba(255, 214, 140, .75); text-underline-offset: .22em; text-decoration-thickness: 1.5px; }
+.term:hover, .term.on { color: #ffd68c; }
+.hs, .rx { cursor: help; }
+.term-pop { position: fixed; z-index: 90; left: 50%; bottom: max(1rem, env(safe-area-inset-bottom));
+  transform: translate(-50%, 1rem); opacity: 0; width: min(26rem, calc(100vw - 2rem));
+  background: rgba(16, 20, 44, .94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 214, 140, .35); border-radius: 14px; padding: .9rem 1.1rem 1rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5); font-size: .92rem; line-height: 1.6; transition: opacity .18s, transform .18s; }
+.term-pop.on { opacity: 1; transform: translate(-50%, 0); }
+.term-pop p { margin: .35rem 0 0; }
+.term-pop .term-t { margin: 0 1.6rem .2rem 0; font-weight: 700; color: #ffd68c; font-size: 1rem; }
+.term-pop .term-s { display: inline-block; margin-right: .4rem; font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif; }
+.term-pop .term-more { color: rgba(220, 226, 255, .7); font-size: .85rem; border-top: 1px solid rgba(255, 255, 255, .1); padding-top: .5rem; margin-top: .6rem; }
+.term-x { position: absolute; top: .4rem; right: .5rem; background: none; border: 0; color: inherit; font-size: 1.4rem; line-height: 1; padding: .3rem .5rem; cursor: pointer; opacity: .7; }
+.term-hint { font-size: .8rem; opacity: .65; margin: .2rem 0 0; }

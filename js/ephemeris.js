@@ -104,7 +104,7 @@ function natalChart(birth) {
 
 /* ---------- 각도(애스펙트) ---------- */
 const ASPECT_DEFS = [
-  { key: "conj", angle: 0, ko: "합", sym: "☌", nature: "mix" },
+  { key: "conj", angle: 0, ko: "0° 합", sym: "☌", nature: "mix" },
   { key: "sextile", angle: 60, ko: "60° 섹스타일", sym: "⚹", nature: "soft" },
   { key: "square", angle: 90, ko: "90° 스퀘어", sym: "□", nature: "hard" },
   { key: "trine", angle: 120, ko: "120° 트라인", sym: "△", nature: "soft" },
