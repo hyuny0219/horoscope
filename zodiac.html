@@ -65,17 +65,26 @@
       <p class="room-sign"><span class="room-no">3</span>운세</p>
       <div class="reading-intro">
         <h2 id="reading-title">오늘의 별자리 운세</h2>
-        <p>열두 액자 가운데 내 별자리를 고르거나 생일을 입력하세요. 같은 날에는 언제 다시 와도 같은 운세가 걸려 있습니다.</p>
+        <p>운세는 그날 실제 달의 위치와 모양을 따라 바뀝니다. 내 별 지도를 만들어 두면 태어난 날의 달까지 함께 읽어 드립니다.</p>
       </div>
+
+      <section class="chart-card" aria-labelledby="chart-title">
+        <div class="chart-card-head">
+          <h3 id="chart-title">내 별 지도</h3>
+          <p>태어난 순간 태양, 달, 동쪽 지평선이 있던 별자리를 계산합니다. 시각을 모르면 상승궁은 비워 둡니다.</p>
+        </div>
+        <form class="chart-form" id="chart-form">
+          <label>생년월일 <input type="date" id="birth-date" required></label>
+          <label>태어난 시각 <input type="time" id="birth-time"></label>
+          <label>태어난 곳 <select id="birth-place"></select></label>
+          <button type="submit" class="btn btn-ink">별 지도 만들기</button>
+        </form>
+        <div class="chart-result" id="chart-result" hidden></div>
+      </section>
 
       <div class="picker" id="picker" role="radiogroup" aria-label="별자리 선택"></div>
 
       <div class="reading-tools">
-        <div class="finder">
-          <label for="birthday">생일로 찾기</label>
-          <input type="date" id="birthday">
-          <p id="birthday-result" class="finder-result" aria-live="polite"></p>
-        </div>
         <div class="day-tabs" role="group" aria-label="날짜 선택">
           <button type="button" class="day-tab" data-offset="-1">어제</button>
           <button type="button" class="day-tab" data-offset="0">오늘</button>
@@ -84,6 +93,22 @@
       </div>
 
       <article class="sheet" id="reading-out" aria-live="polite"></article>
+
+      <section class="cards" aria-labelledby="cards-title">
+        <h3 id="cards-title">오늘의 별 카드</h3>
+        <p class="cards-intro" id="cards-intro">마음이 가는 카드 한 장을 고르세요. 하루에 한 번만 뒤집을 수 있습니다.</p>
+        <div class="card-row" id="card-row"></div>
+      </section>
+
+      <section class="compat" aria-labelledby="compat-title">
+        <h3 id="compat-title">별자리 궁합</h3>
+        <form class="chart-form" id="compat-form">
+          <label>나의 생일 <input type="date" id="compat-me" required></label>
+          <label>상대의 생일 <input type="date" id="compat-you" required></label>
+          <button type="submit" class="btn btn-ink">궁합 보기</button>
+        </form>
+        <div class="compat-out" id="compat-out" hidden aria-live="polite"></div>
+      </section>
     </section>
   </main>
 
@@ -92,12 +117,15 @@
   </footer>
 
   <script src="js/data.js"></script>
-  <script src="js/wheel.js"></script>
-  <script src="js/fortune.js"></script>
-  <script src="js/main.js"></script>
   <script src="js/sky-data.js"></script>
+  <script src="js/sky-ko.js"></script>
   <script src="js/astro.js"></script>
   <script src="js/milkyway.js"></script>
+  <script src="js/wheel.js"></script>
+  <script src="js/astrology.js"></script>
+  <script src="js/fortune.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/main.js"></script>
   <script src="js/backdrop.js"></script>
 </body>
 </html>

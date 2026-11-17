@@ -396,3 +396,111 @@ input[type="date"], select {
 @media (prefers-reduced-motion: reduce) {
   .pick-frame, .stage-toast, .progress-bar span { transition: none; }
 }
+
+/* ---------- 3 운세 확장: 별 지도, 하늘, 차트, 별 카드, 궁합 ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.chart-card, .cards, .compat { max-width: 64rem; margin-bottom: 2.75rem; }
+.chart-card {
+  padding: 1.5rem 1.75rem; border: 1px solid var(--hair); background: rgba(14, 18, 34, 0.5);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.chart-card-head h3, .cards h3, .compat h3 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: var(--step-1); }
+.chart-card-head p, .cards-intro { margin: 0.35rem 0 1.1rem; color: var(--wall-muted); font-size: 0.9rem; }
+.chart-form { display: flex; flex-wrap: wrap; align-items: end; gap: 0.75rem 1rem; font-size: 0.82rem; color: var(--wall-muted); }
+.chart-form label { display: grid; gap: 0.3rem; }
+input[type="time"] {
+  font: inherit; font-size: 0.9rem; color: var(--wall-ink); color-scheme: dark;
+  background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(232, 233, 240, 0.35); border-radius: 2px; padding: 0.45rem 0.65rem;
+}
+.chart-result { margin-top: 1.4rem; }
+.chart-who { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--wall-muted); }
+.chart-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.chart-tile { padding: 1rem 1.1rem; border-top: 1px solid var(--brass); }
+.chart-tile p { margin: 0; }
+.chart-tile-title { font-size: 0.78rem; color: var(--wall-muted); }
+.chart-tile-sign { font-family: var(--serif); font-size: var(--step-1); margin: 0.2rem 0 0.25rem !important; }
+.chart-tile-sub { font-size: 0.85rem; color: var(--wall-ink); }
+.link-btn { margin-top: 0.75rem; background: none; border: 0; padding: 0; color: var(--wall-muted); font: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
+
+.sheet { position: relative; }
+.r-badge { display: inline-block; margin: -0.75rem 0 1.25rem; padding: 0.2rem 0.6rem; font-size: 0.8rem; color: var(--on-solid); background: var(--brass-light); }
+.r-sky { margin: 0 0 1.5rem; padding: 1rem 1.1rem; border-left: 2px solid var(--brass); background: rgba(255, 255, 255, 0.03); }
+.r-sky p { margin: 0 0 0.5rem; font-size: 0.92rem; }
+.r-sky p:last-child { margin-bottom: 0; }
+.r-sky strong { font-weight: 600; color: var(--brass-light); }
+.r-mood { color: var(--ink-muted); }
+.r-keywords { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; padding: 0; margin: 0 0 0.75rem; }
+.r-keywords li { font-size: 0.82rem; padding: 0.15rem 0.6rem; border: 1px solid rgba(247, 222, 154, 0.5); color: var(--brass-light); }
+.r-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 2rem; padding: 1.25rem 0; border-top: 1px solid var(--hair); }
+.r-charts figure { margin: 0; }
+.r-charts figcaption { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
+.mini-chart { width: 100%; max-width: 22rem; height: auto; display: block; overflow: visible; }
+.mini-chart .ct { font: 11px var(--sans); fill: #A3AAC0; }
+.mini-chart .ct-strong { font: 600 11px var(--sans); fill: #E8E9F0; }
+.mini-chart .crosshair { opacity: 0; }
+.mini-chart .hit.is-hover .crosshair { opacity: 1; }
+.mini-chart .hit.is-hover path { filter: brightness(1.2); }
+.chart-tip {
+  position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 12px)); pointer-events: none; white-space: nowrap;
+  background: rgba(8, 11, 22, 0.92); color: var(--wall-ink); border: 1px solid var(--hair); font-size: 0.78rem; padding: 0.25rem 0.55rem;
+}
+.chart-tip[hidden] { display: none; }
+.r-cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.r-todo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 2rem; padding: 1.25rem 0 0; }
+.r-todo p { margin: 0; font-family: var(--serif); }
+.r-todo-label { display: block; font-family: var(--sans); font-size: 0.75rem; color: var(--ink-muted); }
+
+/* 별 카드: 3D로 뒤집힌다 */
+.card-row { display: grid; grid-template-columns: repeat(3, minmax(0, 13rem)); gap: 1.25rem; }
+.star-card { perspective: 900px; background: none; border: 0; padding: 0; cursor: pointer; aspect-ratio: 5 / 8; color: inherit; font: inherit; text-align: left; }
+.star-card:disabled { cursor: default; }
+.star-card-inner { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.star-card.is-open .star-card-inner { transform: rotateY(180deg); }
+.star-card:not(:disabled):hover .star-card-inner { transform: translateY(-6px) rotateX(6deg); }
+.star-card.is-dim { opacity: 0.35; }
+.star-card-back, .star-card-front {
+  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  border: 1px solid rgba(247, 222, 154, 0.45); box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.9);
+}
+.star-card-back {
+  display: grid; place-items: center;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(247, 222, 154, 0.18), transparent 45%),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 14px, rgba(247, 222, 154, 0.07) 14px 15px),
+    linear-gradient(160deg, #141B38, #070A16);
+}
+.star-card-mark { color: var(--brass-light); filter: drop-shadow(0 0 10px rgba(247, 222, 154, 0.8)); }
+.star-card-front {
+  transform: rotateY(180deg); display: flex; flex-direction: column; gap: 0.4rem; padding: 1.2rem 1.1rem;
+  background: radial-gradient(circle at 50% 18%, rgba(247, 222, 154, 0.25), transparent 40%), linear-gradient(170deg, #1A2246, #0A0E1E);
+}
+.star-card-star { font-family: var(--serif); font-size: 1.25rem; color: var(--brass-light); margin-top: 22%; }
+.star-card-con { font-size: 0.75rem; color: var(--wall-muted); }
+.star-card-msg { font-family: var(--serif); font-size: 0.92rem; line-height: 1.7; margin-top: 0.4rem; }
+
+/* 궁합 */
+.compat .chart-form { margin: 1rem 0 0; }
+.compat-out { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 1.5rem 2.5rem; align-items: start; margin-top: 1.5rem; padding: 1.5rem 1.75rem; border: 1px solid var(--hair); background: rgba(14, 18, 34, 0.55); }
+.compat-out[hidden] { display: none; }
+.compat-score { display: flex; align-items: baseline; gap: 0.2rem; }
+.compat-num { font-family: var(--serif); font-size: clamp(3.5rem, 8vw, 5rem); line-height: 1; color: var(--wall-ink); }
+.compat-unit { font-size: 1rem; color: var(--wall-muted); }
+.compat-body p { margin: 0 0 0.6rem; }
+.compat-pair { font-family: var(--serif); font-size: var(--step-1); }
+.compat-note { font-size: 0.85rem; color: var(--wall-muted); }
+.meters { display: grid; gap: 0.5rem; margin: 0.9rem 0; max-width: 26rem; }
+.meter { display: grid; grid-template-columns: 6.5rem 1fr 2rem; align-items: center; gap: 0.75rem; font-size: 0.82rem; }
+.meter-label { color: var(--wall-muted); }
+.meter-track { height: 6px; background: rgba(232, 233, 240, 0.12); border-radius: 4px; overflow: hidden; }
+.meter-fill { display: block; height: 100%; border-radius: 4px; }
+.meter-value { text-align: right; }
+
+@media (max-width: 720px) {
+  .chart-tiles, .r-charts, .r-cats, .r-todo { grid-template-columns: 1fr; }
+  .card-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+  .star-card-msg { font-size: 0.72rem; line-height: 1.5; }
+  .star-card-star { font-size: 0.95rem; }
+  .star-card-front { padding: 0.7rem 0.6rem; }
+  .compat-out { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .star-card-inner { transition: none; } }
