@@ -246,6 +246,40 @@
 
 
   Pro.init();
+
+  /* ---------- 시작 화면: 생년월일부터 ---------- */
+  const startPlace = $("#start-place");
+  if (startPlace) {
+    PLACES.forEach((p, i) => startPlace.add(new Option(p.ko, i)));
+    startPlace.add(new Option("그 밖의 곳 (서울 기준으로 계산)", 0));
+  }
+  bind("#start-form", "submit", (e) => {
+    e.preventDefault();
+    if (!$("#start-date").value) return;
+    $("#birth-date").value = $("#start-date").value;
+    $("#birth-time").value = $("#start-time").value;
+    $("#birth-place").value = startPlace.value;
+    $("#chart-form").requestSubmit();
+    $("#hero").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  const openPlate = () => {
+    const d = $("#plate-more");
+    d.open = true;
+    d.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  bind("#skip-start", "click", openPlate);
+  bind("#plate-more", "toggle", () => { window.dispatchEvent(new Event("resize")); wheel.dirty = true; });
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-edit-birth]") || e.target.closest("[data-go-start]")) {
+      $("#hero-me").hidden = true; $("#hero-start").hidden = false;
+      if (profile) {
+        $("#start-date").value = $("#birth-date").value; $("#start-time").value = $("#birth-time").value;
+      }
+      $("#hero").scrollIntoView({ behavior: "smooth", block: "start" });
+      $("#start-date").focus({ preventScroll: true });
+    }
+  });
+
   renderChart();
   renderReading();
   // 저장한 별 지도나 링크로 고른 별자리가 있으면 원판도 그 별자리로 돌린다

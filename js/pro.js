@@ -13,7 +13,7 @@ const Pro = (() => {
   const deg = (lon) => { const x = lon % 30, d = Math.floor(x), m = Math.floor((x - d) * 60); return `${d}°${String(m).padStart(2, "0")}′`; };
   const signTag = (i) => `<span class="sg">${SIGNS[i].glyph}</span> ${SIGNS[i].ko}`;
   const houseOf = (sign, base) => ((sign - base + 12) % 12) + 1;
-  const houseTag = (h) => `<span class="hs">${h}하우스 · ${HOUSE_TOPIC[h].short}</span>`;
+  const houseTag = (h) => `<span class="hs" title="${h}하우스">${HOUSE_TOPIC[h].short}<small>${h}</small></span>`;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   /* 별누리만의 연결: 그 순간의 실제 하늘을 3D로 */
   const skyLink = (ms, extra = "") => `index.html?t=${Math.round(ms)}${extra}`;
@@ -47,52 +47,105 @@ const Pro = (() => {
     const retro = BODIES.filter((id) => sky[id].retro).map((id) => BODY_KO[id].ko);
     const vocNow = voc && voc.start && ms >= voc.start && ms < voc.end;
     $("#sky-now").innerHTML = `
-      <h3 class="pro-h">오늘의 하늘 <small>${fmtFull(ms)} 기준 · ${SIGNS[base].ko} 하우스</small></h3>
+      <h3 class="pro-h">오늘의 하늘 <small>${fmtFull(ms)} · 행성들이 지금 어느 별자리에 있는지와, ${SIGNS[base].ko}에게 삶의 어느 부분을 비추는지</small></h3>
       <div class="moon-box ${vocNow ? "is-void" : ""}">
         <p><span class="pg">☽</span> 달은 <b>${signTag(sky.moon.sign)} ${deg(sky.moon.lon)}</b>에 있고, <b>${ing ? fmtFull(ing) : "-"}</b>에 ${signTag((sky.moon.sign + 1) % 12)}로 넘어갑니다.</p>
-        ${voc && voc.start ? `<p class="voc">${vocNow ? "지금 " : ""}<b>보이드 오브 코스</b> ${fmtTime(voc.start)} ~ ${fmtFull(voc.end)} <span class="muted">— 달이 별자리를 떠나기 전 마지막 각도(${BODY_KO[voc.lastAspect.with].ko} ${voc.lastAspect.aspect.sym})를 지난 시간. 새 일 시작·계약·큰 결정은 이 시간을 피하는 게 전통입니다.</span></p>` : ""}
+        ${voc && voc.start ? `<p class="voc">${vocNow ? "지금 " : ""}<b>달의 쉬는 시간</b> ${fmtTime(voc.start)} ~ ${fmtFull(voc.end)} <span class="muted">— 점성술에서 '보이드'라 부르는 시간입니다. 새 일 시작, 계약, 큰 결정은 이 시간을 피하는 것이 전통입니다.</span></p>` : ""}
       </div>
-      <div class="table-wrap"><table class="sky-table"><thead><tr><th>천체</th><th>별자리와 도수</th><th>${SIGNS[base].ko} 기준 영역</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="muted small">${retro.length ? `지금 역행 중: ${retro.join(", ")} (℞). 역행하는 천체의 주제는 새로 벌이기보다 다시 보기에 좋습니다.` : "지금 역행 중인 행성이 없습니다."}</p>
+      <div class="table-wrap"><table class="sky-table"><thead><tr><th>천체</th><th>별자리와 도수</th><th>내 삶의 어느 부분</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="muted small">${retro.length ? `지금 거꾸로 가는 것처럼 보이는(역행, ℞) 행성: ${retro.join(", ")}. 이 행성이 맡은 일은 새로 벌이기보다 다시 살피기에 좋습니다.` : "지금 역행 중인 행성이 없습니다."}</p>
       <ul class="ev-list">${lun}</ul>`;
   }
 
   /* ---------- 2. 개인 트랜짓 ---------- */
+  /* 트랜짓 하나: 쉬운 말 먼저, 점성술 해설은 '왜 그런가요?' 안에 */
+  function plainItem(t, ms, exact) {
+    const p = plainTransit(t), x = transitSentence(t), tone = PLAIN_TONE[transitCategory(t)];
+    return `<li class="pl-item pl-${transitCategory(t)}">
+      <p class="pl-tone">${tone.icon} ${tone.ko}</p>
+      <p class="pl-title">${p.title}</p>
+      <p class="pl-text">${p.text}</p>
+      <p class="pl-tip"><b>오늘의 한 가지</b> ${p.tip}</p>
+      <details class="pl-why"><summary>왜 그런가요?</summary>
+        <p class="small">${techLine(t)}. ${x.phase}${exact ? `, 가장 강한 날은 ${fmtDay(exact)}` : ""}.</p>
+        <p class="small">${x.line}</p>
+      </details></li>`;
+  }
+  function exactDateOf(t, ms) {
+    const N = state.natal;
+    const win = { sun: 4, mercury: 6, venus: 6, mars: 10, jupiter: 60, saturn: 90, uranus: 200, neptune: 300, pluto: 300 }[t.transit];
+    if (!win || !N) return null;
+    const n = [...N.points, ...(N.asc ? [N.asc, N.mc] : [])].find((p) => p.id === t.natal);
+    const hits = exactAspects(ms - win * 86400000, ms + win * 86400000, [{ a: t.transit, b: t.natal, fixed: n.lon }], (win > 30 ? 2 : 0.25) * 86400000)
+      .filter((h) => h.aspect.key === t.aspect.key);
+    return hits.length ? hits.sort((a, b) => Math.abs(a.ms - ms) - Math.abs(b.ms - ms))[0].ms : null;
+  }
+  /* 오늘의 핵심 몇 개: 오래가는 영향 먼저, 좋은 흐름과 조심할 흐름을 섞어서 */
+  function topTransits(ms, n = 3) {
+    const list = transitsNow(ms, state.natal).filter((t) => t.transit !== "moon");
+    const out = [], seen = new Set();
+    const take = (t) => { const k = t.natal + transitCategory(t); if (!seen.has(k) && out.length < n) { seen.add(k); out.push(t); } };
+    const pw = list.filter((t) => transitCategory(t) === "power"), ot = list.filter((t) => transitCategory(t) !== "power");
+    for (let i = 0; out.length < n && (i < pw.length || i < ot.length); i++) { if (pw[i]) take(pw[i]); if (ot[i]) take(ot[i]); }
+    if (!out.length) { const m = transitsNow(ms, state.natal).find((t) => t.transit === "moon"); if (m) out.push(m); }
+    return out;
+  }
+  function doDont(list) {
+    const doL = [...new Set(list.filter((t) => transitCategory(t) === "power").map((t) => TRANSIT_DO[t.transit][0]))].slice(0, 3);
+    const dont = [...new Set(list.filter((t) => transitCategory(t) !== "power").map((t) => TRANSIT_DO[t.transit][1]))].slice(0, 3);
+    return { doL: doL.length ? doL : ["평소 리듬대로 지내기"], dont: dont.length ? dont : ["무리한 일정 잡기"] };
+  }
+
   function renderTransits(ms) {
     const box = $("#transits");
     const N = state.natal;
     if (!N) {
-      box.innerHTML = `<h3 class="pro-h">나만의 트랜짓</h3>
-        <p class="muted">생년월일(가능하면 태어난 시각까지)을 넣으면, 오늘 움직이는 행성이 <b>내가 태어난 순간의 하늘</b>과 이루는 각도를 계산해 나만의 운세를 보여 드립니다.</p>
-        <div class="unique-actions"><button type="button" class="btn btn-ink" data-go-tab="chart">내 차트 만들기</button><button type="button" class="btn btn-line share-btn" data-share="today">오늘 카드 공유</button></div>`;
+      box.innerHTML = `<h3 class="pro-h">오늘 나에게 닿는 별</h3>
+        <p class="muted">생년월일을 넣으면 오늘 하늘이 <b>내가 태어난 날의 하늘</b>과 만나는 곳을 찾아 나만의 운세를 보여 드립니다.</p>
+        <div class="unique-actions"><button type="button" class="btn btn-ink" data-go-start>생년월일 넣기</button><button type="button" class="btn btn-line share-btn" data-share="today">오늘 카드 공유</button></div>`;
       return;
     }
     const list = transitsNow(ms, N);
-    const groups = { power: [], pressure: [], trouble: [] };
-    for (const t of list) groups[transitCategory(t)].push(t);
-    const doList = [...new Set(groups.power.slice(0, 4).map((t) => TRANSIT_DO[t.transit]?.[0]).filter(Boolean))].slice(0, 3);
-    const dontList = [...new Set([...groups.trouble, ...groups.pressure].slice(0, 4).map((t) => TRANSIT_DO[t.transit]?.[1]).filter(Boolean))].slice(0, 3);
-    // 느린 행성은 정확한 각도의 날짜를 찾아 준다
-    const exactDate = (t) => {
-      const win = { sun: 4, mercury: 6, venus: 6, mars: 10, jupiter: 60, saturn: 90, uranus: 200, neptune: 300, pluto: 300 }[t.transit];
-      if (!win) return null;
-      const n = [...N.points, ...(N.asc ? [N.asc, N.mc] : [])].find((p) => p.id === t.natal);
-      const hits = exactAspects(ms - win * 86400000, ms + win * 86400000, [{ a: t.transit, b: t.natal, fixed: n.lon }], (win > 30 ? 2 : 0.25) * 86400000)
-        .filter((h) => h.aspect.key === t.aspect.key);
-      return hits.length ? hits.sort((a, b) => Math.abs(a.ms - ms) - Math.abs(b.ms - ms))[0].ms : null;
-    };
-    const item = (t) => {
-      const s = transitSentence(t), ex = exactDate(t);
-      return `<li><p class="tr-title">${s.title} <span class="muted">orb ${t.orb.toFixed(1)}° · ${s.phase}${ex ? ` · 정확한 날 ${fmtDay(ex)}` : ""}</span></p><p>${s.line}</p></li>`;
-    };
-    const col = (k) => `<section class="tr-col tr-${k}"><h4>${CATEGORY_KO[k].ko} <small>${CATEGORY_KO[k].desc}</small></h4>
-      ${groups[k].length ? `<ul>${groups[k].slice(0, 4).map(item).join("")}</ul>` : `<p class="muted small">오늘은 해당하는 각도가 없습니다.</p>`}</section>`;
+    const { doL, dont } = doDont(list);
     box.innerHTML = `
-      <div class="pro-h-row"><h3 class="pro-h">나만의 트랜짓 <small>오늘 하늘 × 내 출생 차트</small></h3><button type="button" class="btn btn-star share-btn" data-share="today">오늘 카드 공유</button></div>
-      <div class="tr-grid">${col("power")}${col("pressure")}${col("trouble")}</div>
+      <div class="pro-h-row"><h3 class="pro-h">오늘 나에게 닿는 별 <small>지금 하늘의 행성이 내가 태어난 날의 행성과 만나는 곳 (전체 ${list.length}개)</small></h3><button type="button" class="btn btn-star share-btn" data-share="today">오늘 카드 공유</button></div>
+      <ul class="pl-list">${list.slice(0, 8).map((t) => plainItem(t, ms, exactDateOf(t, ms))).join("")}</ul>
       <div class="dodont">
-        <div><h4>Do</h4><ul>${(doList.length ? doList : ["평소 리듬대로 지내기"]).map((x) => `<li>${x}</li>`).join("")}</ul></div>
-        <div><h4>Don't</h4><ul>${(dontList.length ? dontList : ["무리한 일정 잡기"]).map((x) => `<li>${x}</li>`).join("")}</ul></div>
+        <div><h4>해 보면 좋은 것</h4><ul>${doL.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+        <div><h4>피하면 좋은 것</h4><ul>${dont.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+      </div>`;
+  }
+
+  /* 맨 위 '오늘의 나' */
+  function renderHero() {
+    const start = $("#hero-start"), me = $("#hero-me");
+    if (!start || !me) return;
+    const N = state.natal;
+    start.hidden = !!N; me.hidden = !N;
+    if (!N) return;
+    const ms = Date.now();
+    const top = topTransits(ms, 3), all = transitsNow(ms, N);
+    const { doL, dont } = doDont(all);
+    // 하루 전체의 분위기: 좋은 흐름과 조심할 흐름의 균형
+    const slow = all.filter((t) => t.transit !== "moon");
+    const bal = slow.reduce((a, t) => a + ({ power: 1, pressure: -0.5, trouble: -1 })[transitCategory(t)], 0);
+    const mood = bal >= 1.5 ? "별이 밀어 주는 하루" : bal > 0 ? "좋은 흐름이 조금 더 많은 하루" : bal === 0 ? "좋은 흐름과 조심할 흐름이 섞인 하루" : "한 박자 쉬어 가면 좋은 하루";
+    const lead = { title: mood };
+    const tag = (label, sign) => sign == null ? "" : `<span class="me-tag"><small>${label}</small> ${signTag(sign)}</span>`;
+    me.innerHTML = `
+      <p class="me-date">${fmtDay(ms)} · 오늘의 나</p>
+      <h1 class="me-title">${lead ? lead.title : "평온하게 흘러가는 하루"}</h1>
+      <p class="me-tags">${tag("태양", N.sky.sun.sign)}${tag("달", N.sky.moon.sign)}${tag("상승", N.asc ? N.asc.sign : null)}</p>
+      <ul class="pl-list me-list">${top.map((t) => plainItem(t, ms, exactDateOf(t, ms))).join("") || `<li class="pl-item"><p class="pl-text">오늘은 내 별과 크게 부딪히거나 만나는 행성이 없습니다. 내 속도대로 지내기 좋은 날입니다.</p></li>`}</ul>
+      <div class="dodont me-dd">
+        <div><h4>해 보면 좋은 것</h4><ul>${doL.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+        <div><h4>피하면 좋은 것</h4><ul>${dont.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+      </div>
+      <div class="me-actions">
+        <button type="button" class="btn btn-star share-btn" data-share="today">오늘 카드 공유</button>
+        <button type="button" class="btn btn-line" data-go-tab="week">이번 주 보기</button>
+        <button type="button" class="btn btn-line" data-go-tab="chart">내 차트</button>
+        <button type="button" class="link-btn" data-edit-birth>생일 바꾸기</button>
       </div>`;
   }
 
@@ -343,10 +396,10 @@ const Pro = (() => {
     const list = N ? transitsNow(ms, N).filter((t) => t.transit !== "moon" || true) : [];
     if (N && list.length) {
       const pick = list.find((t) => transitCategory(t) === "power" && t.transit !== "moon") || list.find((t) => t.transit !== "moon") || list[0];
-      const sx = transitSentence(pick), cat = CATEGORY_KO[transitCategory(pick)];
-      headlineKicker = `오늘 가장 강한 하늘 · ${cat.ko}`;
-      headline = sx.headline;
-      body = TRANSIT_SPECIAL[`${pick.transit}-${pick.natal}-${pick.aspect.key}`] || TRANSIT_EFFECT[pick.transit][pick.aspect.nature === "soft" ? 0 : pick.aspect.nature === "hard" ? 1 : 2];
+      const pl = plainTransit(pick), tone = PLAIN_TONE[transitCategory(pick)];
+      headlineKicker = `오늘의 별 · ${tone.ko}`;
+      headline = pl.title;
+      body = `${pl.text} ${pl.tip}`;
       const groups = { power: [], other: [] };
       for (const t of list) (transitCategory(t) === "power" ? groups.power : groups.other).push(t);
       doList = [...new Set(groups.power.map((t) => TRANSIT_DO[t.transit][0]))].slice(0, 3);
@@ -405,7 +458,7 @@ const Pro = (() => {
   function update({ sign, profile, offset }) {
     if (sign != null) state.sign = sign;
     if (offset != null) state.offset = offset;
-    if (profile !== undefined) { state.profile = profile; state.natal = natalOf(profile); }
+    if (profile !== undefined) { state.profile = profile; state.natal = natalOf(profile); try { renderHero(); } catch (err) { console.error(err); } }
     renderTab();
   }
 

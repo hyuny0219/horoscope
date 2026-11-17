@@ -135,7 +135,7 @@ const ShareCard = (() => {
     // Do / Don't
     y = Math.min(Math.max(y + 60, 800), 900);
     const colW = (W - 168 - 40) / 2;
-    for (const [k, list, col, x] of [["Do", d.doList, "#9FD8A8", 84], ["Don't", d.dontList, "#FF9C7A", 84 + colW + 40]]) {
+    for (const [k, list, col, x] of [["해 보면 좋은 것", d.doList, "#9FD8A8", 84], ["피하면 좋은 것", d.dontList, "#FF9C7A", 84 + colW + 40]]) {
       g.font = `600 30px ${SANS}`; g.fillStyle = col; g.fillText(k, x, y);
       g.font = `400 28px ${SANS}`; g.fillStyle = INK;
       let yy = y + 48;
