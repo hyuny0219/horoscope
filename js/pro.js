@@ -414,6 +414,56 @@ const Pro = (() => {
     </section>`;
   }
 
+  /* 별자리로 본 스타 — 닮은 스타, 잘 맞는/엇갈리는 스타 (재미로) */
+  const GENDER_KEY = "byeolnuri.gender";
+  let starCache = null;
+  function starCharts() {
+    if (!starCache && typeof STAR_PEOPLE !== "undefined") starCache = STAR_PEOPLE.map(([name, g, job, y, m, d, tz]) => ({ name, g, job, y, m, d, N: natalChart({ y, m, d, hh: NaN, mm: 0, tz }) }));
+    return starCache || [];
+  }
+  function starsSection(N) {
+    const list = starCharts();
+    if (!list.length) return "";
+    let gender = ""; try { gender = localStorage.getItem(GENDER_KEY) || ""; } catch (e) {}
+    const me = { sun: N.sky.sun.sign, moon: N.sky.moon.sign };
+    const ids = [["sun", "태양", 4], ["moon", "달", 3], ["venus", "금성", 1.5], ["mars", "화성", 1], ["mercury", "수성", 1]];
+    const scored = list.map((c) => {
+      const same = ids.filter(([id]) => c.N.sky[id].sign === N.sky[id].sign);
+      let sim = same.reduce((a, [, , w]) => a + w, 0);
+      if (SIGNS[c.N.sky.sun.sign].element === SIGNS[N.sky.sun.sign].element) sim += 1;
+      if (N.asc && c.N.sky.sun.sign === N.asc.sign) sim += 1.5;
+      const fit = renderSynastry(N, c.N, compatibility(me, { sun: c.N.sky.sun.sign, moon: c.N.sky.moon.sign }).total).total;
+      return { ...c, same, sim, fit };
+    });
+    const born = (c) => `${c.y}.${c.m}.${c.d}`;
+    const tags = (c) => `태양 ${SIGNS[c.N.sky.sun.sign].ko} · 달 ${SIGNS[c.N.sky.moon.sign].ko}`;
+    const alike = [...scored].sort((a, b) => b.sim - a.sim || b.fit - a.fit).slice(0, 3);
+    const why = (c) => c.same.length ? `${c.same.map(([, ko]) => ko).join("·")}이 나와 같은 별자리에 있어` : `태양이 나와 같은 ${SIGNS[c.N.sky.sun.sign].element} 기운이라`;
+    const pick = (g, best) => [...scored].filter((c) => c.g === g).sort((a, b) => best ? b.fit - a.fit : a.fit - b.fit).slice(0, 2);
+    const label = (g) => gender ? (g === gender ? "동성" : "이성") : (g === "m" ? "남자" : "여자");
+    const order = gender ? [gender === "m" ? "f" : "m", gender] : ["f", "m"];
+    const row = (c, kind) => `<li><span class="st-name">${c.name}</span><span class="st-meta">${c.job} · ${born(c)}</span><span class="st-tags">${tags(c)}</span>${kind ? `<span class="st-score ${kind}">${c.fit}점</span>` : ""}</li>`;
+    const box = (title, cls, items, kind) => `<div class="st-box ${cls}"><p class="st-k">${title}</p><ul>${items.map((c) => row(c, kind)).join("")}</ul></div>`;
+    return `<section class="stars">
+      <h3 class="pro-h">별자리로 본 스타 <small>공개된 생일로 계산한 재미용 비교입니다. 스타의 태어난 시각은 몰라 정오 기준으로 봅니다</small></h3>
+      <div class="st-alike"><p class="st-k">🪞 나와 별자리가 닮은 스타</p>
+        <ul>${alike.map((c) => `<li><span class="st-name">${c.name}</span><span class="st-meta">${c.job} · ${born(c)}</span><span class="st-tags">${why(c)}, 타고난 분위기와 성향이 닮았습니다</span></li>`).join("")}</ul>
+        <p class="muted small">얼굴 생김새가 아니라 출생 차트가 닮은 사람입니다. 같은 별자리 배치는 비슷한 분위기와 매력으로 드러난다고 봅니다.</p></div>
+      <div class="st-gender">나는 <button type="button" data-gender="f" class="${gender === "f" ? "on" : ""}">여자</button><button type="button" data-gender="m" class="${gender === "m" ? "on" : ""}">남자</button><button type="button" data-gender="" class="${!gender ? "on" : ""}">선택 안 함</button>
+        <span class="muted small">${gender ? "동성·이성으로 나눠 보여 드려요" : "고르면 동성·이성으로 나눠 보여 드려요"}</span></div>
+      <div class="st-grid">
+        ${order.map((g) => box(`💞 가장 잘 맞는 ${label(g)} 스타`, "is-best", pick(g, true), "good")).join("")}
+        ${order.map((g) => box(`⚡ 별자리가 엇갈리는 ${label(g)} 스타`, "is-worst", pick(g, false), "bad")).join("")}
+      </div>
+      <p class="muted small">점수는 '궁합' 탭과 같은 방식(두 사람의 행성이 이루는 각도)으로 계산했습니다. 엇갈린다는 건 서로 다른 리듬을 가졌다는 뜻일 뿐, 실제 사람에 대한 평가가 아닙니다.</p>
+    </section>`;
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".st-gender [data-gender]"); if (!b) return;
+    try { localStorage.setItem(GENDER_KEY, b.dataset.gender); } catch (err) {}
+    const sec = b.closest(".stars"); if (sec && state.natal) { const tmp = document.createElement("div"); tmp.innerHTML = starsSection(state.natal); sec.replaceWith(tmp.firstElementChild); }
+  });
+
   function renderNatal() {
     const box = $("#chart-result"), N = state.natal;
     if (!N) { box.hidden = true; return; }
@@ -460,6 +510,7 @@ const Pro = (() => {
         <ul class="persona-list">${["mercury", "venus", "mars", "jupiter", "saturn"].map((id) => { const p = N.sky[id]; return `<li><span class="pl-k">${PERSONA_ROLE[id]}</span><span>${SIGNS[p.sign].ko}처럼 <b>${SIGN_PLAIN[p.sign]}</b>${p.retro && ["mercury", "venus", "mars"].includes(id) ? " (속으로 오래 다듬는 편)" : ""}</span></li>`; }).join("")}</ul>
       </section>
       ${lifeAreas(N)}
+      ${starsSection(N)}
       <details class="legend"><summary>차트의 기호는 이렇게 읽어요</summary>
         <dl>
           <div><dt>☉ ☽ ☿ ♀ ♂ …</dt><dd>행성 기호입니다. 태양 ☉ 달 ☽ 수성 ☿ 금성 ♀ 화성 ♂ 목성 ♃ 토성 ♄ 천왕성 ♅ 해왕성 ♆ 명왕성 ♇. 행성마다 맡은 성격(사랑, 의욕, 생각 등)이 있습니다.</dd></div>

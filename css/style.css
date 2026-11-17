@@ -1030,3 +1030,23 @@ button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
 .term-list li { margin: .35rem 0; padding-left: 1.7rem; text-indent: -1.7rem; }
 .term-list .term-s { display: inline-block; width: 1.7rem; text-indent: 0; text-align: center; color: #ffd68c; }
 p > .ev-ic { position: static; display: inline-block; width: auto; margin-right: .4rem; overflow: visible; }
+
+/* 별자리로 본 스타 */
+.stars { margin: 2rem 0; }
+.stars ul { list-style: none; margin: .4rem 0 0; padding: 0; }
+.st-alike, .st-box { border: 1px solid var(--hair); background: rgba(14, 18, 34, 0.55); border-radius: 12px; padding: .9rem 1rem; }
+.st-alike { margin-bottom: 1rem; }
+.st-k { margin: 0; font-weight: 700; color: var(--brass-light); }
+.stars li { display: grid; grid-template-columns: 1fr auto; column-gap: .6rem; padding: .55rem 0; border-top: 1px solid rgba(255, 255, 255, .06); }
+.stars li:first-child { border-top: 0; }
+.st-name { font-weight: 700; font-size: 1.02rem; }
+.st-meta { grid-column: 1; font-size: .78rem; color: var(--wall-muted); }
+.st-tags { grid-column: 1; font-size: .85rem; line-height: 1.5; }
+.st-score { grid-column: 2; grid-row: 1 / span 3; align-self: center; font-family: var(--serif); font-size: 1.25rem; }
+.st-score.good { color: #9fe3b0; }
+.st-score.bad { color: #ff9c7a; }
+.st-gender { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .4rem 0 .8rem; font-size: .9rem; }
+.st-gender button { font: inherit; font-size: .85rem; color: inherit; background: rgba(255, 255, 255, .06); border: 1px solid var(--hair); border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.st-gender button.on { background: rgba(247, 222, 154, .2); border-color: rgba(247, 222, 154, .6); color: var(--brass-light); }
+.st-grid { display: grid; grid-template-columns: 1fr; gap: .8rem; margin-bottom: .8rem; }
+@media (min-width: 720px) { .st-grid { grid-template-columns: 1fr 1fr; } }
