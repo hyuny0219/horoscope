@@ -935,3 +935,21 @@ button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
   .pro-panel[data-panel="today"] > .cards, .pro-panel[data-panel="today"] > .plate-more { grid-column: 1 / -1; }
   .card-row { grid-template-columns: repeat(3, minmax(0, 11rem)); }
 }
+
+/* 오늘 탭: PC에서도 하나씩 위아래로 (좌우 길이 차이로 생기던 빈 공간 없애기) */
+@media (min-width: 1024px) {
+  .pro-panel[data-panel="today"]:not([hidden]) { display: block; }
+  .pro-panel[data-panel="today"] > .sheet, .pro-panel[data-panel="today"] > .pro-box { margin-bottom: 1.75rem; }
+  /* 해설지 안: 왼쪽은 오늘의 하늘·총운, 오른쪽은 차트·세부 운세 */
+  #reading-out { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 3rem; align-items: start; }
+  #reading-out > .r-head { grid-column: 1 / -1; }
+  #reading-out > .r-sky, #reading-out > .r-overall { grid-column: 1; }
+  #reading-out > .r-charts, #reading-out > .r-cats, #reading-out > .r-todo, #reading-out > .r-lucky { grid-column: 2; }
+  #reading-out > .r-sky { grid-row: 2; } #reading-out > .r-overall { grid-row: 3 / span 3; }
+  #reading-out > .r-charts { grid-row: 2; border-top: 0; padding-top: 0; } #reading-out > .r-cats { grid-row: 3; } #reading-out > .r-todo { grid-row: 4; } #reading-out > .r-lucky { grid-row: 5; }
+  /* 오늘의 하늘: 왼쪽 달과 다음 사건, 오른쪽 행성 표 */
+  #sky-now { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); column-gap: 3rem; align-items: start; }
+  #sky-now > .pro-h { grid-column: 1 / -1; }
+  #sky-now > .moon-box, #sky-now > .ev-list, #sky-now > p { grid-column: 1; }
+  #sky-now > .table-wrap { grid-column: 2; grid-row: 2 / span 4; }
+}
