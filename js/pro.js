@@ -105,15 +105,32 @@ const Pro = (() => {
         <div class="unique-actions"><button type="button" class="btn btn-ink" data-go-start>생년월일 넣기</button><button type="button" class="btn btn-line share-btn" data-share="today">오늘 카드 공유</button></div>`;
       return;
     }
+    if (state.offset === 0) { box.innerHTML = ""; return; } // 오늘은 맨 위 '오늘의 나'에 모두 있다
     const list = transitsNow(ms, N);
     const { doL, dont } = doDont(list);
     box.innerHTML = `
-      <div class="pro-h-row"><h3 class="pro-h">오늘 나에게 닿는 별 <small>지금 하늘의 행성이 내가 태어난 날의 행성과 만나는 곳 (전체 ${list.length}개)</small></h3><button type="button" class="btn btn-star share-btn" data-share="today">오늘 카드 공유</button></div>
+      <div class="pro-h-row"><h3 class="pro-h">${state.offset < 0 ? "어제" : "내일"} 나에게 닿는 별 <small>지금 하늘의 행성이 내가 태어난 날의 행성과 만나는 곳 (전체 ${list.length}개)</small></h3><button type="button" class="btn btn-star share-btn" data-share="today">오늘 카드 공유</button></div>
       <ul class="pl-list">${list.slice(0, 8).map((t) => plainItem(t, ms, exactDateOf(t, ms))).join("")}</ul>
       <div class="dodont">
         <div><h4>해 보면 좋은 것</h4><ul>${doL.map((x) => `<li>${x}</li>`).join("")}</ul></div>
         <div><h4>피하면 좋은 것</h4><ul>${dont.map((x) => `<li>${x}</li>`).join("")}</ul></div>
       </div>`;
+  }
+
+  /* 내 출생 차트 기준 영역별 보정 (-2 ~ +2): 별자리 공통 운세 점수를 나에게 맞춘다 */
+  const AREA_OF = { venus: ["love", "money"], moon: ["love", "health"], mercury: ["work"], saturn: ["work"], mc: ["work"], sun: ["overall", "health"], mars: ["health", "work"], jupiter: ["money", "overall"], asc: ["health", "overall"], uranus: ["overall"], neptune: ["overall"], pluto: ["overall"] };
+  function personalMods(ms) {
+    const N = state.natal;
+    if (!N) return null;
+    const mods = { overall: 0, love: 0, money: 0, work: 0, health: 0 };
+    for (const t of transitsNow(ms, N)) {
+      const w = (t.transit === "moon" ? 0.5 : 1) * (1 - t.orb / 5);
+      const v = ({ power: 1, pressure: -0.6, trouble: -1 })[transitCategory(t)] * w;
+      for (const k of AREA_OF[t.natal] || ["overall"]) mods[k] += v;
+      mods.overall += v * 0.4;
+    }
+    for (const k in mods) mods[k] = Math.max(-2, Math.min(2, mods[k]));
+    return mods;
   }
 
   /* 맨 위 '오늘의 나' */
@@ -124,12 +141,15 @@ const Pro = (() => {
     start.hidden = !!N; me.hidden = !N;
     if (!N) return;
     const ms = Date.now();
-    const top = topTransits(ms, 3), all = transitsNow(ms, N);
+    const all = transitsNow(ms, N), top = topTransits(ms, 3);
+    const rest = all.filter((t) => t.transit !== "moon" && !top.includes(t));
     const { doL, dont } = doDont(all);
     // 하루 전체의 분위기: 좋은 흐름과 조심할 흐름의 균형
     const slow = all.filter((t) => t.transit !== "moon");
     const bal = slow.reduce((a, t) => a + ({ power: 1, pressure: -0.5, trouble: -1 })[transitCategory(t)], 0);
-    const mood = bal >= 1.5 ? "별이 밀어 주는 하루" : bal > 0 ? "좋은 흐름이 조금 더 많은 하루" : bal === 0 ? "좋은 흐름과 조심할 흐름이 섞인 하루" : "한 박자 쉬어 가면 좋은 하루";
+    const mo = personalMods(ms).overall;
+    const mood = mo >= 1.2 ? "별이 밀어 주는 하루" : mo > 0.3 ? "좋은 흐름이 조금 더 많은 하루" : mo > -0.3 ? "좋은 흐름과 조심할 흐름이 섞인 하루" : "한 박자 쉬어 가면 좋은 하루";
+    void bal;
     const lead = { title: mood };
     const tag = (label, sign) => sign == null ? "" : `<span class="me-tag"><small>${label}</small> ${signTag(sign)}</span>`;
     me.innerHTML = `
@@ -137,6 +157,7 @@ const Pro = (() => {
       <h1 class="me-title">${lead ? lead.title : "평온하게 흘러가는 하루"}</h1>
       <p class="me-tags">${tag("태양", N.sky.sun.sign)}${tag("달", N.sky.moon.sign)}${tag("상승", N.asc ? N.asc.sign : null)}</p>
       <ul class="pl-list me-list">${top.map((t) => plainItem(t, ms, exactDateOf(t, ms))).join("") || `<li class="pl-item"><p class="pl-text">오늘은 내 별과 크게 부딪히거나 만나는 행성이 없습니다. 내 속도대로 지내기 좋은 날입니다.</p></li>`}</ul>
+      ${rest.length ? `<details class="me-more"><summary>오늘의 다른 흐름 ${rest.length}개 더 보기</summary><ul class="pl-list me-list">${rest.map((t) => plainItem(t, ms, exactDateOf(t, ms))).join("")}</ul></details>` : ""}
       <div class="dodont me-dd">
         <div><h4>해 보면 좋은 것</h4><ul>${doL.map((x) => `<li>${x}</li>`).join("")}</ul></div>
         <div><h4>피하면 좋은 것</h4><ul>${dont.map((x) => `<li>${x}</li>`).join("")}</ul></div>
@@ -477,5 +498,5 @@ const Pro = (() => {
     document.addEventListener("click", (e) => { const g = e.target.closest("[data-go-tab]"); if (g) { setTab(g.dataset.goTab); $(".pro-tabs").scrollIntoView({ behavior: "smooth", block: "start" }); } });
   }
 
-  return { init, update, setTab, renderSynastry, natalOf, get natal() { return state.natal; } };
+  return { init, update, setTab, renderSynastry, natalOf, personalMods, get natal() { return state.natal; } };
 })();

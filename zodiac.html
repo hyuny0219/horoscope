@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611180019">
+  <link rel="stylesheet" href="css/style.css?v=202611180023">
 </head>
 <body>
   <canvas id="backdrop" aria-hidden="true"></canvas>
@@ -52,58 +52,59 @@
         <button type="button" role="tab" class="pro-tab" data-tab="chart" aria-selected="false">내 차트</button>
         <button type="button" role="tab" class="pro-tab" data-tab="compat" aria-selected="false">궁합</button>
       </div>
-      <div class="basis" id="basis" hidden></div>
-      <details class="plate-more" id="plate-more">
-        <summary>별자리 원판 · 다른 별자리 운세 보기</summary>
-        <div class="reading-plate">
-          <div class="hang">
-            <figure class="artwork">
-              <div class="frame frame-round">
-                <canvas id="wheel" tabindex="0"
-                  aria-label="황도 12궁 회전 성좌판. 좌우 화살표로 별자리를 옮기고, Home 키로 오늘 날짜로 돌아갑니다."></canvas>
-              </div>
-              <figcaption class="artwork-hint">원판을 끌어 돌리거나 별자리를 눌러 내 별자리를 고르세요. 위쪽 지침이 가리키는 별자리의 운세가 아래에 나옵니다.</figcaption>
-            </figure>
-  
-            <aside class="label" aria-live="polite">
-              <p class="label-kicker" id="plate-date"></p>
-              <h2 class="label-title" id="plate-name"></h2>
-              <p class="label-sub" id="plate-latin"></p>
-              <dl class="label-facts">
-                <div><dt>기간</dt><dd id="plate-range"></dd></div>
-                <div><dt>원소</dt><dd id="plate-element"></dd></div>
-                <div><dt>수호성</dt><dd id="plate-planet"></dd></div>
-                <div><dt>키워드</dt><dd id="plate-keyword"></dd></div>
-              </dl>
-              <p class="label-body" id="plate-traits"></p>
-              <p class="label-note" id="plate-myth"></p>
-              <div class="label-actions">
-                <button type="button" class="btn btn-ink" id="plate-cta">이 별자리 운세 보기</button>
-                <a class="btn btn-line" id="plate-sky" href="index.html">밤하늘에서 찾기</a>
-                <button type="button" class="btn btn-line" id="plate-today" hidden>오늘 날짜로 돌리기</button>
-              </div>
-            </aside>
-          </div>
-        </div>
-        </details>
-
       <div class="pro-panel" data-panel="today">
-        <div class="reading-tools">
-          <div class="day-tabs" role="group" aria-label="날짜 선택">
-            <button type="button" class="day-tab" data-offset="-1">어제</button>
-            <button type="button" class="day-tab" data-offset="0">오늘</button>
-            <button type="button" class="day-tab" data-offset="1">내일</button>
+        <div class="today-bar">
+          <div class="basis" id="basis" hidden></div>
+          <div class="reading-tools">
+            <div class="day-tabs" role="group" aria-label="날짜 선택">
+              <button type="button" class="day-tab" data-offset="-1">어제</button>
+              <button type="button" class="day-tab" data-offset="0">오늘</button>
+              <button type="button" class="day-tab" data-offset="1">내일</button>
+            </div>
           </div>
         </div>
-          <article class="sheet" id="reading-out" aria-live="polite"></article>
-          <section class="pro-box" id="transits"></section>
+        <article class="sheet" id="reading-out" aria-live="polite"></article>
+        <section class="pro-box" id="transits"></section>
         <section class="pro-box" id="sky-now"></section>
         <section class="cards" aria-labelledby="cards-title">
           <h3 id="cards-title">오늘의 별 카드</h3>
           <p class="cards-intro" id="cards-intro">마음이 가는 카드 한 장을 고르세요. 하루에 한 번만 뒤집을 수 있습니다.</p>
           <div class="card-row" id="card-row"></div>
         </section>
-        </div>
+          <details class="plate-more" id="plate-more">
+          <summary>별자리 원판 · 다른 별자리 운세 보기</summary>
+          <div class="reading-plate">
+            <div class="hang">
+              <figure class="artwork">
+                <div class="frame frame-round">
+                  <canvas id="wheel" tabindex="0"
+                    aria-label="황도 12궁 회전 성좌판. 좌우 화살표로 별자리를 옮기고, Home 키로 오늘 날짜로 돌아갑니다."></canvas>
+                </div>
+                <figcaption class="artwork-hint">원판을 끌어 돌리거나 별자리를 눌러 내 별자리를 고르세요. 위쪽 지침이 가리키는 별자리의 운세가 아래에 나옵니다.</figcaption>
+              </figure>
+    
+              <aside class="label" aria-live="polite">
+                <p class="label-kicker" id="plate-date"></p>
+                <h2 class="label-title" id="plate-name"></h2>
+                <p class="label-sub" id="plate-latin"></p>
+                <dl class="label-facts">
+                  <div><dt>기간</dt><dd id="plate-range"></dd></div>
+                  <div><dt>원소</dt><dd id="plate-element"></dd></div>
+                  <div><dt>수호성</dt><dd id="plate-planet"></dd></div>
+                  <div><dt>키워드</dt><dd id="plate-keyword"></dd></div>
+                </dl>
+                <p class="label-body" id="plate-traits"></p>
+                <p class="label-note" id="plate-myth"></p>
+                <div class="label-actions">
+                  <button type="button" class="btn btn-ink" id="plate-cta">이 별자리 운세 보기</button>
+                  <a class="btn btn-line" id="plate-sky" href="index.html">밤하늘에서 찾기</a>
+                  <button type="button" class="btn btn-line" id="plate-today" hidden>오늘 날짜로 돌리기</button>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </details>
+      </div>
       <div class="pro-panel" data-panel="week" hidden><section class="pro-box" id="week-out"></section></div>
       <div class="pro-panel" data-panel="month" hidden><section class="pro-box" id="month-out"></section></div>
       <div class="pro-panel" data-panel="year" hidden><section class="pro-box" id="year-out"></section></div>
@@ -143,21 +144,21 @@
     <p>운세는 재미로 즐겨 주세요. 행성 위치는 NASA JPL 궤도 요소와 Meeus의 계산식으로 구했고(수 분각 정밀도), 해설은 서양 점성술의 열대 황도와 홀사인 하우스를 따릅니다.</p>
   </footer>
 
-  <script src="js/data.js?v=202611180019"></script>
-  <script src="js/sky-data.js?v=202611180019"></script>
-  <script src="js/sky-ko.js?v=202611180019"></script>
-  <script src="js/astro.js?v=202611180019"></script>
-  <script src="js/milkyway-data.js?v=202611180019"></script>
-  <script src="js/milkyway.js?v=202611180019"></script>
-  <script src="js/wheel.js?v=202611180019"></script>
-  <script src="js/astrology.js?v=202611180019"></script>
-  <script src="js/fortune.js?v=202611180019"></script>
-  <script src="js/ephemeris.js?v=202611180019"></script>
-  <script src="js/astro-text.js?v=202611180019"></script>
-  <script src="js/charts.js?v=202611180019"></script>
-  <script src="js/share.js?v=202611180019"></script>
-  <script src="js/pro.js?v=202611180019"></script>
-  <script src="js/main.js?v=202611180019"></script>
-  <script src="js/backdrop.js?v=202611180019"></script>
+  <script src="js/data.js?v=202611180023"></script>
+  <script src="js/sky-data.js?v=202611180023"></script>
+  <script src="js/sky-ko.js?v=202611180023"></script>
+  <script src="js/astro.js?v=202611180023"></script>
+  <script src="js/milkyway-data.js?v=202611180023"></script>
+  <script src="js/milkyway.js?v=202611180023"></script>
+  <script src="js/wheel.js?v=202611180023"></script>
+  <script src="js/astrology.js?v=202611180023"></script>
+  <script src="js/fortune.js?v=202611180023"></script>
+  <script src="js/ephemeris.js?v=202611180023"></script>
+  <script src="js/astro-text.js?v=202611180023"></script>
+  <script src="js/charts.js?v=202611180023"></script>
+  <script src="js/share.js?v=202611180023"></script>
+  <script src="js/pro.js?v=202611180023"></script>
+  <script src="js/main.js?v=202611180023"></script>
+  <script src="js/backdrop.js?v=202611180023"></script>
 </body>
 </html>

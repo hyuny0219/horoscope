@@ -129,6 +129,17 @@
     date.setDate(today.getDate() + dayOffset);
     const mine = profile && profile.chart.sun === current ? profile.chart : null;
     const f = makeFortune(current, date, mine);
+    // 내 차트가 있고 지금 보는 별자리가 내 별자리(태양·달·상승) 중 하나면, 점수를 내 하늘로 맞춘다
+    const N = Pro.natal;
+    const mineSign = N && [N.sky.sun.sign, N.sky.moon.sign, N.asc?.sign].includes(current);
+    const mods = mineSign ? Pro.personalMods(date.getTime()) : null;
+    if (mods) {
+      for (const c of f.categories) {
+        const sc = Math.max(1, Math.min(5, Math.round(3 + mods[c.key] * 1.2 + (c.score - 3) * 0.4)));
+        if (sc !== c.score) { const arr = FORTUNE_TEXT[c.key][tierOf(sc)]; c.text = arr[hashString(dateKey(date) + c.key) % arr.length]; c.score = sc; }
+      }
+      f.week.forEach((d) => { if (d.off === 0) d.score = f.categories[0].score; });
+    }
     const [overall, ...rest] = f.categories;
     const L = f.lucky;
     const wk = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
@@ -137,7 +148,8 @@
     $("#reading-out").innerHTML = `
       <header class="r-head">
         <p class="r-date">${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${wk}요일</p>
-        <h3 class="r-sign"><span aria-hidden="true">${f.sign.glyph}</span> ${f.sign.ko}</h3>
+        <h3 class="r-sign"><span aria-hidden="true">${f.sign.glyph}</span> ${f.sign.ko} 운세</h3>
+        <p class="r-note">${mods ? "내 출생 차트의 오늘 흐름을 반영한 점수입니다." : N ? "같은 별자리 모두에게 해당하는 운세입니다." : "생년월일을 넣으면 내 출생 차트에 맞춘 점수로 바뀝니다."}</p>
         ${f.birthdaySeason ? `<p class="r-badge">지금 태양이 ${f.sign.ko}에 머무는 생일 시즌입니다</p>` : ""}
       </header>
 

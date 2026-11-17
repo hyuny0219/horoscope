@@ -915,3 +915,23 @@ button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
   .yr-grid { grid-template-columns: 1fr 1fr; }
   .cal-cell { min-height: 4.2rem; }
 }
+
+/* 자세한 운세 정리 */
+.today-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem 1.5rem; margin: 0 0 1.25rem; }
+.today-bar .basis, .today-bar .reading-tools { margin: 0; }
+.r-note { margin: -1rem 0 1.25rem; font-size: 0.8rem; color: var(--wall-muted); }
+.me-more { margin-top: 0.8rem; }
+.me-more > summary { cursor: pointer; display: inline-flex; align-items: center; min-height: 2.6rem; padding: 0 1rem; border: 1px solid var(--hair); border-radius: 999px; font-size: 0.9rem; list-style: none; }
+.me-more > summary::-webkit-details-marker { display: none; }
+.me-more[open] > summary { margin-bottom: 0.8rem; }
+.pro-panel[data-panel="today"] .plate-more { margin-top: 0.5rem; }
+@media (min-width: 1024px) {
+  .pro-panel[data-panel="today"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pro-panel[data-panel="today"] > .today-bar { grid-column: 1 / -1; grid-row: 1; }
+  .pro-panel[data-panel="today"] > .sheet { grid-column: 1; grid-row: 2 / span 2; max-width: none; }
+  .pro-panel[data-panel="today"] > #transits { grid-column: 2; grid-row: 2; }
+  .pro-panel[data-panel="today"] > #sky-now { grid-column: 2; grid-row: 3; }
+  .pro-panel[data-panel="today"] > #transits:empty + #sky-now { grid-row: 2 / span 2; }
+  .pro-panel[data-panel="today"] > .cards, .pro-panel[data-panel="today"] > .plate-more { grid-column: 1 / -1; }
+  .card-row { grid-template-columns: repeat(3, minmax(0, 11rem)); }
+}
