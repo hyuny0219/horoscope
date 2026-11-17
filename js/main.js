@@ -93,26 +93,33 @@
   });
 
   function renderChart() {
-    const box = $("#chart-result");
-    if (!profile) { box.hidden = true; return; }
-    const { birth, chart } = profile;
-    box.hidden = false;
-    const tile = (title, i, sub) => `<div class="chart-tile">
-      <p class="chart-tile-title">${title}</p>
-      <p class="chart-tile-sign">${i == null ? "모름" : signLabel(i)}</p>
-      <p class="chart-tile-sub">${sub}</p></div>`;
-    box.innerHTML = `
-      <p class="chart-who">${birth.y}년 ${birth.m}월 ${birth.d}일${Number.isFinite(birth.hh) ? ` ${birth.hh}시 ${birth.mm}분` : ""}, ${birth.place}</p>
-      <div class="chart-tiles">
-        ${tile("태양궁, 나의 성격", chart.sun, SIGNS[chart.sun].keyword)}
-        ${tile("달궁, 나의 감정", chart.moon, MOON_IN[chart.moon])}
-        ${tile("상승궁, 남이 보는 나", chart.rising, chart.rising == null ? "태어난 시각을 넣으면 계산합니다" : RISING_IN[chart.rising])}
-      </div>
-      <button type="button" class="link-btn" id="chart-clear">별 지도 지우기</button>`;
-    bind("#chart-clear", "click", () => { profile = null; localStorage.removeItem(PROFILE_KEY); renderChart(); renderReading(); });
+    Pro.update({ profile });
+    renderBasis();
+    if (!profile) return;
+    const { birth } = profile;
     $("#birth-date").value = `${birth.y}-${String(birth.m).padStart(2, "0")}-${String(birth.d).padStart(2, "0")}`;
     if (Number.isFinite(birth.hh)) $("#birth-time").value = `${String(birth.hh).padStart(2, "0")}:${String(birth.mm).padStart(2, "0")}`;
   }
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#chart-clear")) return;
+    profile = null; localStorage.removeItem(PROFILE_KEY); renderChart(); renderReading();
+  });
+
+  /* 운세 기준: 태양궁 / 달궁 / 상승궁 (CHANI처럼 상승궁 기준으로 읽기도 한다) */
+  function renderBasis() {
+    const box = $("#basis");
+    const N = Pro.natal;
+    if (!N) { box.hidden = true; return; }
+    const opts = [["태양궁", N.sky.sun.sign], ["달궁", N.sky.moon.sign], ...(N.asc ? [["상승궁", N.asc.sign]] : [])];
+    box.hidden = false;
+    box.innerHTML = `<span class="basis-label">내 운세 기준</span>${opts.map(([k, i]) => `<button type="button" class="basis-btn" data-sign="${i}" aria-pressed="${i === current}">${k} ${SIGNS[i].glyph} ${SIGNS[i].ko}</button>`).join("")}`;
+  }
+  bind("#basis", "click", (e) => {
+    const b = e.target.closest(".basis-btn");
+    if (!b) return;
+    const i = Number(b.dataset.sign);
+    current = i; wheel.goToSign(i); renderReading();
+  });
 
   /* ----- 운세 해설지 ----- */
   function renderReading() {
@@ -170,8 +177,11 @@
         <div><dt>잘 맞는 별자리</dt><dd>${L.match.glyph} ${L.match.ko}</dd></div>
       </dl>`;
     renderCards(date);
+    Pro.update({ sign: current, offset: dayOffset });
+    document.querySelectorAll(".basis-btn").forEach((x) => x.setAttribute("aria-pressed", Number(x.dataset.sign) === current));
   }
   bindChartTips($("#reading-out"));
+  ["#week-out", "#month-out", "#year-out", "#chart-result", "#transits"].forEach((sel) => $(sel) && bindChartTips($(sel)));
 
   /* ----- 별 카드 ----- */
   function renderCards(date) {
@@ -206,32 +216,36 @@
   /* ----- 궁합 ----- */
   bind("#compat-form", "submit", (e) => {
     e.preventDefault();
-    const parse = (v) => { const [y, m, d] = v.split("-").map(Number); return birthChart({ y, m, d, lat: 37.57, lon: 126.98, tz: 9 }); };
     const me = $("#compat-me").value, you = $("#compat-you").value;
     if (!me || !you) return;
-    const a = profile && $("#compat-me").value === $("#birth-date").value ? profile.chart : parse(me);
-    const b = parse(you);
+    const toBirth = (v, t) => {
+      const [y, m, d] = v.split("-").map(Number), b = { y, m, d, lat: 37.57, lon: 126.98, tz: 9, place: "서울" };
+      if (t) { const [hh, mm] = t.split(":").map(Number); b.hh = hh; b.mm = mm; }
+      return b;
+    };
+    const mineSame = profile && me === $("#birth-date").value;
+    const bA = mineSame ? profile.birth : toBirth(me, $("#compat-me-time").value), bB = toBirth(you, $("#compat-you-time").value);
+    const A = natalChart(bA), B = natalChart(bB);
+    const a = { sun: A.sky.sun.sign, moon: A.sky.moon.sign }, b = { sun: B.sky.sun.sign, moon: B.sky.moon.sign };
     const c = compatibility(a, b);
-    const words = COMPAT_TEXT.find((t) => c.total >= t.min).text;
+    const syn = Pro.renderSynastry(A, B, c.total);
+    const words = COMPAT_TEXT.find((t) => syn.total >= t.min).text;
     const out = $("#compat-out");
     out.hidden = false;
     out.innerHTML = `
-      <div class="compat-score"><span class="compat-num">${c.total}</span><span class="compat-unit">점</span></div>
+      <div class="compat-score"><span class="compat-num">${syn.total}</span><span class="compat-unit">점</span></div>
       <div class="compat-body">
         <p class="compat-pair">${signLabel(a.sun)}와 ${signLabel(b.sun)}</p>
         <p>${words}</p>
-        <div class="meters">
-          ${meter("성격 (태양)", c.sunScore)}
-          ${meter("감정 (달)", c.moonScore)}
-          ${meter("원소", c.elementScore)}
-        </div>
-        <p class="compat-note">태양끼리는 ${c.sunAspect.name}, 달끼리는 ${signLabel(a.moon)}와 ${signLabel(b.moon)}로 ${c.moonAspect.name} 관계입니다.</p>
+        <p class="compat-note">태양끼리는 ${c.sunAspect.name}, 달끼리는 ${signLabel(a.moon)}와 ${signLabel(b.moon)}로 ${c.moonAspect.name} 관계입니다.${A.known && B.known ? "" : " 태어난 시각을 넣으면 상승점까지 겹쳐 봅니다."}</p>
+        ${syn.html}
       </div>`;
   });
   bindChartTips($("#compat-out"));
   if (profile) $("#compat-me").value = $("#birth-date").value;
 
 
+  Pro.init();
   renderChart();
   renderReading();
   // 저장한 별 지도나 링크로 고른 별자리가 있으면 원판도 그 별자리로 돌린다

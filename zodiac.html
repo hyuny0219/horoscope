@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611172246">
+  <link rel="stylesheet" href="css/style.css?v=202611172302">
 </head>
 <body>
   <canvas id="backdrop" aria-hidden="true"></canvas>
@@ -29,14 +29,12 @@
       <p class="show-meta">상설 전시. 운세는 매일 자정에 바뀝니다.</p>
     </section>
 
-
     <section class="room room-reading" id="reading" aria-labelledby="reading-title">
       <p class="room-sign"><span class="room-no">2</span>운세</p>
       <div class="reading-intro">
         <h2 id="reading-title">오늘의 별자리 운세</h2>
         <p>운세는 그날 실제 달의 위치와 모양을 따라 바뀝니다. 내 별 지도를 만들어 두면 태어난 날의 달까지 함께 읽어 드립니다.</p>
       </div>
-
 
       <div class="reading-plate">
         <div class="hang">
@@ -69,63 +67,86 @@
         </div>
       </div>
 
-      <div class="reading-tools">
-        <div class="day-tabs" role="group" aria-label="날짜 선택">
-          <button type="button" class="day-tab" data-offset="-1">어제</button>
-          <button type="button" class="day-tab" data-offset="0">오늘</button>
-          <button type="button" class="day-tab" data-offset="1">내일</button>
-        </div>
+      <div class="pro-tabs" role="tablist" aria-label="운세 종류">
+        <button type="button" role="tab" class="pro-tab" data-tab="today" aria-selected="true">오늘</button>
+        <button type="button" role="tab" class="pro-tab" data-tab="week" aria-selected="false">이번 주</button>
+        <button type="button" role="tab" class="pro-tab" data-tab="month" aria-selected="false">이번 달</button>
+        <button type="button" role="tab" class="pro-tab" data-tab="year" aria-selected="false">1년</button>
+        <button type="button" role="tab" class="pro-tab" data-tab="chart" aria-selected="false">내 차트</button>
+        <button type="button" role="tab" class="pro-tab" data-tab="compat" aria-selected="false">궁합</button>
       </div>
+      <div class="basis" id="basis" hidden></div>
 
-      <article class="sheet" id="reading-out" aria-live="polite"></article>
-
-      <section class="chart-card" aria-labelledby="chart-title">
-        <div class="chart-card-head">
-          <h3 id="chart-title">내 별 지도</h3>
-          <p>태어난 순간 태양, 달, 동쪽 지평선이 있던 별자리를 계산합니다. 시각을 모르면 상승궁은 비워 둡니다.</p>
+      <div class="pro-panel" data-panel="today">
+        <div class="reading-tools">
+          <div class="day-tabs" role="group" aria-label="날짜 선택">
+            <button type="button" class="day-tab" data-offset="-1">어제</button>
+            <button type="button" class="day-tab" data-offset="0">오늘</button>
+            <button type="button" class="day-tab" data-offset="1">내일</button>
+          </div>
         </div>
-        <form class="chart-form" id="chart-form">
-          <label>생년월일 <input type="date" id="birth-date" required></label>
-          <label>태어난 시각 <input type="time" id="birth-time"></label>
-          <label>태어난 곳 <select id="birth-place"></select></label>
-          <button type="submit" class="btn btn-ink">별 지도 만들기</button>
-        </form>
-        <div class="chart-result" id="chart-result" hidden></div>
-      </section>
-
-      <section class="cards" aria-labelledby="cards-title">
-        <h3 id="cards-title">오늘의 별 카드</h3>
-        <p class="cards-intro" id="cards-intro">마음이 가는 카드 한 장을 고르세요. 하루에 한 번만 뒤집을 수 있습니다.</p>
-        <div class="card-row" id="card-row"></div>
-      </section>
-
-      <section class="compat" aria-labelledby="compat-title">
-        <h3 id="compat-title">별자리 궁합</h3>
-        <form class="chart-form" id="compat-form">
-          <label>나의 생일 <input type="date" id="compat-me" required></label>
-          <label>상대의 생일 <input type="date" id="compat-you" required></label>
-          <button type="submit" class="btn btn-ink">궁합 보기</button>
-        </form>
-        <div class="compat-out" id="compat-out" hidden aria-live="polite"></div>
-      </section>
+          <article class="sheet" id="reading-out" aria-live="polite"></article>
+          <section class="pro-box" id="transits"></section>
+        <section class="pro-box" id="sky-now"></section>
+        <section class="cards" aria-labelledby="cards-title">
+          <h3 id="cards-title">오늘의 별 카드</h3>
+          <p class="cards-intro" id="cards-intro">마음이 가는 카드 한 장을 고르세요. 하루에 한 번만 뒤집을 수 있습니다.</p>
+          <div class="card-row" id="card-row"></div>
+        </section>
+        </div>
+      <div class="pro-panel" data-panel="week" hidden><section class="pro-box" id="week-out"></section></div>
+      <div class="pro-panel" data-panel="month" hidden><section class="pro-box" id="month-out"></section></div>
+      <div class="pro-panel" data-panel="year" hidden><section class="pro-box" id="year-out"></section></div>
+      <div class="pro-panel" data-panel="chart" hidden>
+        <section class="chart-card" aria-labelledby="chart-title">
+          <div class="chart-card-head">
+            <h3 id="chart-title">내 별 지도</h3>
+            <p>태어난 순간 태양, 달, 동쪽 지평선이 있던 별자리를 계산합니다. 시각을 모르면 상승궁은 비워 둡니다.</p>
+          </div>
+          <form class="chart-form" id="chart-form">
+            <label>생년월일 <input type="date" id="birth-date" required></label>
+            <label>태어난 시각 <input type="time" id="birth-time"></label>
+            <label>태어난 곳 <select id="birth-place"></select></label>
+            <button type="submit" class="btn btn-ink">별 지도 만들기</button>
+          </form>
+          <div class="chart-result" id="chart-result" hidden></div>
+        </section>
+        </div>
+      <div class="pro-panel" data-panel="compat" hidden>
+        <section class="compat" aria-labelledby="compat-title">
+          <h3 id="compat-title">별자리 궁합</h3>
+          <p class="cards-intro">두 사람이 태어난 순간의 하늘을 겹쳐, 행성끼리 이루는 각도(시너스트리)로 끌림·대화·정서·책임·성장을 봅니다. 시각을 알면 상승점까지 봅니다.</p>
+          <form class="chart-form" id="compat-form">
+            <label>나의 생일 <input type="date" id="compat-me" required></label>
+            <label>나의 태어난 시각 <input type="time" id="compat-me-time"></label>
+            <label>상대의 생일 <input type="date" id="compat-you" required></label>
+            <label>상대의 태어난 시각 <input type="time" id="compat-you-time"></label>
+            <button type="submit" class="btn btn-ink">궁합 보기</button>
+          </form>
+          <div class="compat-out" id="compat-out" hidden aria-live="polite"></div>
+        </section>
+        </div>
     </section>
   </main>
 
   <footer class="site-foot">
-    <p>운세는 재미로 즐겨 주세요. 별자리 기간은 해마다 하루 정도 달라질 수 있습니다.</p>
+    <p>운세는 재미로 즐겨 주세요. 행성 위치는 NASA JPL 궤도 요소와 Meeus의 계산식으로 구했고(수 분각 정밀도), 해설은 서양 점성술의 열대 황도와 홀사인 하우스를 따릅니다.</p>
   </footer>
 
-  <script src="js/data.js?v=202611172246"></script>
-  <script src="js/sky-data.js?v=202611172246"></script>
-  <script src="js/sky-ko.js?v=202611172246"></script>
-  <script src="js/astro.js?v=202611172246"></script>
-  <script src="js/milkyway-data.js?v=202611172246"></script>
-  <script src="js/milkyway.js?v=202611172246"></script>
-  <script src="js/wheel.js?v=202611172246"></script>
-  <script src="js/astrology.js?v=202611172246"></script>
-  <script src="js/fortune.js?v=202611172246"></script>
-  <script src="js/charts.js?v=202611172246"></script>
-  <script src="js/main.js?v=202611172246"></script>
-  <script src="js/backdrop.js?v=202611172246"></script>
+  <script src="js/data.js?v=202611172302"></script>
+  <script src="js/sky-data.js?v=202611172302"></script>
+  <script src="js/sky-ko.js?v=202611172302"></script>
+  <script src="js/astro.js?v=202611172302"></script>
+  <script src="js/milkyway-data.js?v=202611172302"></script>
+  <script src="js/milkyway.js?v=202611172302"></script>
+  <script src="js/wheel.js?v=202611172302"></script>
+  <script src="js/astrology.js?v=202611172302"></script>
+  <script src="js/fortune.js?v=202611172302"></script>
+  <script src="js/ephemeris.js?v=202611172302"></script>
+  <script src="js/astro-text.js?v=202611172302"></script>
+  <script src="js/charts.js?v=202611172302"></script>
+  <script src="js/pro.js?v=202611172302"></script>
+  <script src="js/main.js?v=202611172302"></script>
+  <script src="js/backdrop.js?v=202611172302"></script>
 </body>
 </html>

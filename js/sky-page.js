@@ -55,7 +55,7 @@ const callbacks = {
 const dome = new SkyView($("#dome"), callbacks);
 let sky = null;
 try {
-  const { Sky3D } = await import("./sky3d.js?v=202611172246");
+  const { Sky3D } = await import("./sky3d.js?v=202611172302");
   sky = new Sky3D($("#stage-3d"), callbacks);
   window.sky3d = sky; // 콘솔에서 살펴보기용
 } catch (err) {
@@ -113,7 +113,8 @@ function update() {
     : `달은 지평선 아래에 있습니다 (${moonPhaseName(m)}).`;
   let state = skyStateWords(sunAlt);
   if (sunAlt < -12 && m.alt > 10 && m.illum > 0.6) state = "어두운 밤이지만 밝은 달빛 때문에 흐린 별과 은하수는 잘 보이지 않습니다.";
-  $("#summary").textContent = `${evening.m}월 ${evening.d}일 ${timeLabel(minutes)}, ${place.ko}. ${state} ${moonText}`;
+  const real = new Date(obsTime() + place.tz * 3600000); // 자정을 넘기면 실제 날짜로
+  $("#summary").textContent = `${real.getUTCMonth() + 1}월 ${real.getUTCDate()}일 ${timeLabel(minutes)}, ${place.ko}. ${state} ${moonText}`;
   renderVisible();
   renderDiscover();
   if (shared.selected) showDetail(CONST_BY_ID[shared.selected], true);
@@ -572,7 +573,44 @@ const q = new URLSearchParams(location.search).get("c");
 const top = dome.visibleConstellations(20)[0];
 if (top && sky) { sky.yaw = top.center.az; sky.pitch = Math.min(60, Math.max(20, top.center.alt - 10)); }
 if (q && CONST_BY_ID[q]) { shared.selected = q; syncViews(); showDetail(CONST_BY_ID[q], true); renderVisible(); }
-setView(sky ? "space" : "dome");
+/* 운세 페이지에서 건너온 링크: 그 순간(t), 그 장소(lat, lon), 그 천체(p) 또는 별(s)의 실제 하늘 */
+const P = new URLSearchParams(location.search);
+const linkT = Number(P.get("t")), linkP = P.get("p"), linkS = P.has("s") ? Number(P.get("s")) : null;
+if (P.has("lat") && P.has("lon")) {
+  const custom = { id: "link", ko: P.get("place") || "지정한 곳", lat: Number(P.get("lat")), lon: Number(P.get("lon")), tz: 9 };
+  places.push(custom); sel.add(new Option(custom.ko, places.length - 1)); sel.value = places.length - 1; place = custom;
+}
+if (Number.isFinite(linkT) && linkT > 0) {
+  // 저녁 6시부터 센 분으로 바꾼다 (오후 6시 전이면 전날 저녁부터 센다)
+  const loc = new Date(linkT + place.tz * 3600000), h = loc.getUTCHours();
+  const base = new Date(Date.UTC(loc.getUTCFullYear(), loc.getUTCMonth(), loc.getUTCDate() - (h < 18 ? 1 : 0)));
+  evening = { y: base.getUTCFullYear(), m: base.getUTCMonth() + 1, d: base.getUTCDate() };
+  minutes = (((h - 18 + 24) % 24) * 60) + loc.getUTCMinutes();
+  $("#obs-date").value = `${evening.y}-${String(evening.m).padStart(2, "0")}-${String(evening.d).padStart(2, "0")}`;
+  $("#obs-time").value = Math.min(720, minutes);
+  update();
+}
+const linked = Number.isFinite(linkT) && linkT > 0 || linkS != null;
+setView(sky ? (linked && (P.get("view") === "look" || linkP || linkS != null) ? "look" : "space") : "dome");
 // 첫 화면은 지구에서 시작한다 (링크로 별자리를 골라 왔으면 그 별자리)
-if (sky && !(q && CONST_BY_ID[q])) sky.startAtEarth();
+if (sky && !linked && !(q && CONST_BY_ID[q])) sky.startAtEarth();
+if (sky && linked) {
+  const dt = new Date(obsTime() + place.tz * 3600000);
+  const when = `${dt.getUTCFullYear()}년 ${dt.getUTCMonth() + 1}월 ${dt.getUTCDate()}일 ${timeLabel(minutes)}`;
+  if (linkS != null && SKY_STARS[linkS]) {
+    const aa = starAltAz(linkS);
+    showStar(linkS, true); popStar(linkS);
+    if (aa.alt > 0) sky.lookAtStar(linkS);
+    else { setView("space"); setTimeout(() => sky.orbitStar(linkS), 600); toast(`${topic(starName(linkS) || "이 별")} 지금 지평선 아래라 입체 우주에서 보여 드립니다.`); }
+  } else if (linkP === "moon" && sky.moonAA) {
+    if (sky.moonAA.alt > 0) sky.turnTo(sky.moonAA.az, Math.max(5, Math.min(85, sky.moonAA.alt)));
+    toast(`${when}, ${place.ko}의 하늘입니다. 달은 ${sky.moonAA.alt > 0 ? `${directionName(sky.moonAA.az)} ${altitudeWords(sky.moonAA.alt)}에 있습니다` : "지평선 아래에 있습니다"}.`);
+  } else if (linkP && linkP !== "sun") {
+    const pl = sky.planets.find((x) => x.id === linkP);
+    if (pl && pl.alt > 0) { sky.turnTo(pl.az, Math.max(5, Math.min(85, pl.alt))); showPlanet(linkP, true); popPlanet(linkP); toast(`${when}, ${place.ko}의 하늘: ${topic(pl.ko)} ${directionName(pl.az)} ${altitudeWords(pl.alt)}에 있습니다.`); }
+    else if (pl) { setView("space"); setTimeout(() => sky.orbitPlanet(linkP), 600); toast(`${when}: ${topic(pl.ko)} 지평선 아래라 태양계에서 보여 드립니다.`); }
+  } else {
+    toast(`${when}, ${place.ko}의 실제 하늘입니다.${dome.sun.alt > 0 ? " 낮이라 별은 흐리게만 보입니다." : ""}`);
+  }
+}
 if (document.fonts) document.fonts.ready.then(() => dome.draw());
