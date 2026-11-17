@@ -6,10 +6,6 @@
   const params = new URLSearchParams(location.search);
   if (["t", "s", "c", "p", "go"].some((k) => params.has(k))) return;
 
-  const KEY = "byeolnuri.intro";
-  const today = new Date().toISOString().slice(0, 10);
-  let seenToday = false;
-  try { seenToday = localStorage.getItem(KEY) === today; } catch (e) {}
   const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ---------- DOM ---------- */
@@ -17,32 +13,37 @@
   root.className = "intro";
   root.innerHTML = `
     <canvas class="intro-cv" aria-hidden="true"></canvas>
+    <header class="site-head intro-head">
+      <a class="brand" href="index.html">별누리</a>
+      <nav class="rooms" aria-label="메뉴">
+        <a href="index.html" aria-current="page">태어난 날</a>
+        <a href="index.html?go=sky">밤하늘</a>
+        <a href="zodiac.html#reading">운세</a>
+      </nav>
+    </header>
     <div class="intro-ui" hidden>
       <p class="intro-kicker">실제 하늘로 떠나는 별 여행</p>
       <h1 class="intro-title">별누리</h1>
-      <nav class="intro-menu" aria-label="시작 메뉴">
-        <button type="button" class="intro-btn" data-go="sky"><span class="ib-ic">✦</span><span><b>밤하늘 탐험</b><small>오늘 밤 내 머리 위의 진짜 하늘과 태양계</small></span></button>
-        <a class="intro-btn" href="zodiac.html#reading"><span class="ib-ic">☾</span><span><b>오늘의 운세</b><small>출생 차트로 읽는 나만의 하루</small></span></a>
-        <button type="button" class="intro-btn is-hot" data-go="birth"><span class="ib-ic">✧</span><span><b>태어난 날의 하늘로</b><small>시간을 거슬러 내가 태어난 순간의 하늘을 만나요</small></span></button>
-      </nav>
+      <button type="button" class="intro-cta"><span>✧</span> 내가 태어난 날의 하늘 보러 가기</button>
       <form class="intro-birth" hidden>
-        <p class="ib-title">언제, 어디서 태어났나요?</p>
+        <p class="ib-title">당신이 태어난 날의 하늘로</p>
+        <p class="ib-sub">시간을 거슬러, 태어난 순간 그곳의 진짜 하늘을 만나요</p>
         <label>생년월일<input type="date" name="date" required></label>
         <label>태어난 시각 <span class="opt">몰라도 괜찮아요</span><input type="time" name="time"></label>
         <label>성별<select name="gender"><option value="">선택 안 함</option><option value="f">여자</option><option value="m">남자</option></select></label>
         <label>태어난 나라<select name="country"><option>불러오는 중…</option></select></label>
         <label>태어난 도시<select name="city"></select></label>
-        <div class="ib-actions"><button type="button" class="link-btn" data-go="back">← 메뉴로</button><button type="submit" class="btn btn-star">그날의 하늘로 날아가기</button></div>
+        <div class="ib-actions"><button type="submit" class="btn btn-star">그날의 하늘로 날아가기</button></div>
       </form>
-      <p class="intro-tip">화면을 만지거나 움직여 보세요</p>
+      <p class="intro-tip">별을 만지거나 움직여 보세요</p>
     </div>
     <div class="intro-rewind" hidden><p class="ir-k">시간을 거슬러 가는 중</p><p class="ir-date"></p></div>
-    <button type="button" class="intro-skip">건너뛰기</button>`;
+`;
   document.body.prepend(root);
   document.body.classList.add("intro-on");
   const cv = root.querySelector(".intro-cv"), g = cv.getContext("2d");
-  const ui = root.querySelector(".intro-ui"), menu = root.querySelector(".intro-menu"), form = root.querySelector(".intro-birth");
-  const skip = root.querySelector(".intro-skip"), rew = root.querySelector(".intro-rewind");
+  const ui = root.querySelector(".intro-ui"), form = root.querySelector(".intro-birth");
+  const rew = root.querySelector(".intro-rewind");
   let W = 0, H = 0, DPR = 1;
   function resize() {
     DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -61,14 +62,6 @@
     if (t < 1.4) return [255, 214, 160];
     return [255, 176, 120];
   };
-
-  /* ---------- ① 워프: 진짜 별의 색으로 만든 3D 별 터널 ---------- */
-  const warp = [];
-  for (let i = 0; i < 900; i++) {
-    const s = SKY_STARS[(i * 7) % SKY_STARS.length];
-    warp.push({ x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2, z: Math.random(), c: bvRGB(s[3]), m: s[2] });
-  }
-  const WARP_MS = 4200;
 
   /* ---------- ② 살아 있는 별밭: 실제 별을 천천히 도는 하늘에 투영 ---------- */
   let field = [];
@@ -118,13 +111,14 @@
     g.imageSmoothingQuality = "high"; g.drawImage(mwCv, 0, 0, W, H); g.restore();
   }
   // 별자리가 하나씩 그려졌다 사라진다 (12궁과 유명한 별자리)
-  const SHOW = ["Ori", "UMa", "Cas", "Cyg", "Lyr", "Sco", "Leo", "Tau", "Gem", "Sgr", "Aqr", "Psc", "Ari", "Cnc", "Vir", "Lib", "Cap", "Peg", "And", "Per", "Boo", "Aql", "CMa", "Crx"];
+  const SHOW = ["UMa", "Cas", "Cyg", "Sco", "Leo", "Lyr", "Tau", "Gem", "Peg", "Sgr", "Cru", "Boo", "Per", "Aql", "CMa", "Vir", "Aur", "Ori"];
   const constById = Object.fromEntries(SKY_CONSTS.map((c) => [c.id, c]));
-  let art = null, nextArt = 1500;
+  let art = null, nextArt = 1500, artIdx = 0;
   function startArt(now, id) {
-    const c = constById[id] || constById[SHOW[Math.floor(Math.random() * SHOW.length)]];
-    if (!c) return;
-    const segs = c.l;
+    let c = constById[id];
+    while (!c) { c = constById[SHOW[artIdx % SHOW.length]]; artIdx++; }
+    const segs = c.l.map((sg) => sg.filter((i) => SKY_STARS[i])).filter((sg) => sg.length > 1);
+    if (!segs.length) { nextArt = now + 300; return; }
     const pts = [...new Set(segs.flat())].map((i) => SKY_STARS[i]);
     const ra0 = c.c[0], dec0 = c.c[1];
     // 별자리 자체를 화면 한쪽에 크게 놓는다 (그 별자리 중심에서 본 투영)
@@ -136,21 +130,24 @@
     const all = pts.map(local), xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
     const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 0.05);
     // 메뉴를 가리지 않게: 모바일은 위쪽 띠, 넓은 화면은 양옆에 그린다
+    // 메뉴를 가리지 않게: 넓은 화면은 양옆, 좁은 화면은 머리말과 제목 사이 빈 하늘에 그린다
     const mob = W < 900 || H < 640;
-    const size = mob ? Math.min(W * 0.62, H * 0.26) : Math.min(W * 0.26, H * 0.42);
-    const side = Math.random() < 0.5;
-    const cx = mob ? W * (0.38 + Math.random() * 0.24) : (side ? W * 0.17 : W * 0.83);
-    const cy = mob ? H * 0.2 : H * (0.4 + Math.random() * 0.2);
+    const titleTop = (ui.querySelector(".intro-kicker:not([hidden])")?.offsetParent ? ui.querySelector(".intro-kicker") : ui.querySelector(".intro-title")).getBoundingClientRect().top;
+    const avail = titleTop - 16 - 70;
+    let size, cx, cy, faint = false;
+    if (!mob) { const side = Math.random() < 0.5; size = Math.min(W * 0.26, H * 0.42); cx = side ? W * 0.17 : W * 0.83; cy = H * (0.4 + Math.random() * 0.2); }
+    else if (avail > 130) { size = Math.min(W * 0.66, avail * 0.82); cx = W * (0.42 + Math.random() * 0.16); cy = 70 + avail / 2; }
+    else { size = Math.min(W, H) * 0.8; cx = W / 2; cy = H * 0.45; faint = true; } // 빈 하늘이 없으면 뒤에 은은하게
     const mx = (Math.max(...xs) + Math.min(...xs)) / 2, my = (Math.max(...ys) + Math.min(...ys)) / 2;
     const at = (i) => { const p = local(SKY_STARS[i]); return [cx + ((p[0] - mx) / span) * size, cy + ((p[1] - my) / span) * size]; };
-    art = { t0: now, ko: c.ko, segs: segs.map((sg) => sg.map(at)), cx, cy, size };
+    art = { t0: now, ko: c.ko, segs: segs.map((sg) => sg.map(at)), cx, cy, size, faint };
   }
   function drawArt(now) {
     if (!art) { if (now > nextArt) startArt(now); return; }
     const t = (now - art.t0) / 1000, total = art.segs.reduce((a, s) => a + s.length - 1, 0);
     const drawn = Math.min(total, t * 6); // 초당 선 6개
-    const fade = t < 5.5 ? 1 : Math.max(0, 1 - (t - 5.5) / 1.5);
-    if (fade <= 0) { art = null; nextArt = now + 1200; return; }
+    const fade = (t < 5.5 ? 1 : Math.max(0, 1 - (t - 5.5) / 1.5)) * (art.faint ? 0.35 : 1);
+    if (t > 7) { art = null; nextArt = now + 1200; return; }
     g.save(); g.shadowColor = "rgba(242,196,107,.9)"; g.shadowBlur = 10;
     g.lineWidth = 1.4; g.strokeStyle = `rgba(247,222,154,${0.7 * fade})`;
     let k = 0;
@@ -177,7 +174,7 @@
   const ptr = { x: -9999, y: -9999, on: false, t: 0 };
   const move = (e) => { const p = e.touches ? e.touches[0] : e; ptr.x = p.clientX; ptr.y = p.clientY; ptr.on = true; ptr.t = performance.now(); };
   root.addEventListener("pointermove", move, { passive: true });
-  root.addEventListener("pointerdown", (e) => { move(e); if (mode === "field" && !e.target.closest(".intro-ui button, .intro-ui a, .intro-ui form")) ripples.push({ x: ptr.x, y: ptr.y, t: performance.now() }); }, { passive: true });
+  root.addEventListener("pointerdown", (e) => { move(e); if (mode === "field" && !e.target.closest(".intro-ui form, .intro-head")) ripples.push({ x: ptr.x, y: ptr.y, t: performance.now() }); }, { passive: true });
   root.addEventListener("pointerleave", () => { ptr.on = false; });
   const ripples = [];
 
@@ -247,45 +244,18 @@
   }
 
   /* ---------- 루프 ---------- */
-  let mode = seenToday || reduce ? "field" : "warp";
+  let mode = "field";
   let t0 = performance.now(), last = t0, rewind = null;
   function frame(now) {
     if (!root.isConnected) return;
+    requestAnimationFrame(frame);
+    try { step(now); } catch (e) { art = null; nextArt = now + 1000; }
+  }
+  function step(now) {
     const dt = Math.min(50, now - last); last = now;
-    g.fillStyle = mode === "warp" ? "rgba(2,3,10,0.35)" : mode === "rewind" ? "rgba(2,3,10,0.12)" : "#02030A";
+    g.fillStyle = mode === "rewind" ? "rgba(2,3,10,0.12)" : "#02030A";
     g.fillRect(0, 0, W, H);
-    if (mode === "warp") {
-      const t = (now - t0) / WARP_MS;
-      // 속도: 천천히 → 빛의 줄 → 감속하며 도착
-      const sp = t < 0.15 ? t / 0.15 * 0.004 : t < 0.7 ? 0.004 + (t - 0.15) / 0.55 * 0.05 : Math.max(0.002, 0.054 * (1 - (t - 0.7) / 0.3) ** 2);
-      const cx = W / 2, cy = H / 2, F = Math.min(W, H) * 0.6;
-      for (const s of warp) {
-        const z0 = s.z; s.z -= sp * dt / 16;
-        if (s.z <= 0.02) { s.z += 1; s.x = (Math.random() - 0.5) * 2; s.y = (Math.random() - 0.5) * 2; continue; }
-        const x1 = cx + (s.x / z0) * F, y1 = cy + (s.y / z0) * F, x2 = cx + (s.x / s.z) * F, y2 = cy + (s.y / s.z) * F;
-        const a = Math.min(1, (1 - s.z) * 1.4);
-        g.strokeStyle = `rgba(${s.c[0]},${s.c[1]},${s.c[2]},${a})`;
-        g.lineWidth = Math.max(0.6, (1 - s.z) * 2.6);
-        g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-      }
-      if (t > 0.82) { // 도착: 빛이 번지며 별밭으로
-        const f = Math.min(1, (t - 0.82) / 0.18);
-        drawField(now, dt, { alpha: f });
-        g.fillStyle = `rgba(255,248,230,${Math.sin(f * Math.PI) * 0.35})`; g.fillRect(0, 0, W, H);
-      }
-      const cap = t < 0.08 ? null : t < 0.36 ? ["수천 광년 밖에서", 0.08, 0.36] : t < 0.64 ? ["은하수를 가로질러", 0.36, 0.64] : t < 0.9 ? ["오늘 밤, 당신의 하늘로", 0.64, 0.9] : null;
-      if (cap) {
-        const f = (t - cap[1]) / (cap[2] - cap[1]), a = Math.sin(f * Math.PI);
-        g.save(); g.font = `400 ${W < 600 ? 20 : 28}px "Gowun Batang", serif`; g.textAlign = "center";
-        g.shadowColor = "rgba(242,196,107,.8)"; g.shadowBlur = 18; g.fillStyle = `rgba(255,244,214,${a})`;
-        g.fillText(cap[0], W / 2, H / 2 + 8 + (1 - f) * 10); g.restore();
-      }
-      // 한가운데 목적지의 빛
-      const cg = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.min(W, H) * 0.35);
-      cg.addColorStop(0, `rgba(160,180,255,${0.1 + 0.15 * Math.min(1, t * 1.5)})`); cg.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = cg; g.fillRect(0, 0, W, H);
-      if (t >= 1) toField();
-    } else if (mode === "field") {
+    if (mode === "field") {
       nebula(1);
       drawMilky(now, 1);
       drawField(now, dt);
@@ -303,15 +273,13 @@
       rew.querySelector(".ir-date").textContent = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
       if (t >= 1 && !rewind.done) { rewind.done = true; g.fillStyle = "#fff"; go(rewind.url); }
     }
-    requestAnimationFrame(frame);
   }
 
   function toField() {
     mode = "field";
     ui.hidden = false; requestAnimationFrame(() => ui.classList.add("on"));
-    skip.hidden = true;
-    try { localStorage.setItem(KEY, today); } catch (e) {}
-    startArt(performance.now() + 800, "Ori");
+    startArt(performance.now() + 600, "Ori");
+    openBirth();
   }
   function close() {
     root.classList.add("out");
@@ -320,21 +288,13 @@
   }
   function go(url) { root.classList.add("flash"); setTimeout(() => { location.href = url; }, 350); }
 
-  skip.addEventListener("click", () => { if (mode === "warp") toField(); });
-  root.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-go]"); if (!b) return;
-    const k = b.dataset.go;
-    if (k === "sky") close();
-    if (k === "birth") openBirth();
-    if (k === "back") { form.hidden = true; menu.hidden = false; }
-  });
+
 
   /* ---------- ③ 태어난 날의 하늘로 ---------- */
   let pick = null;
   function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.append(s); }); }
+  root.querySelector(".intro-cta").addEventListener("click", (e) => { e.currentTarget.hidden = true; form.hidden = false; form.date.focus({ preventScroll: true }); art = null; nextArt = performance.now() + 400; });
   async function openBirth() {
-    menu.hidden = true; form.hidden = false;
-    form.date.focus({ preventScroll: true });
     if (!pick) {
       const v = (document.querySelector('script[src*="sky-data.js"]')?.src.match(/\?v=\d+/) || [""])[0];
       try {
@@ -364,6 +324,6 @@
 
   addEventListener("resize", resize);
   resize();
-  if (mode === "field") { toField(); skip.hidden = true; }
+  toField();
   requestAnimationFrame(frame);
 })();

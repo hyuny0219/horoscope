@@ -1152,3 +1152,24 @@ body.intro-on { overflow: hidden; }
 .birth-card b { color: #F7DE9A; }
 .birth-card .bc-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
 .birth-card .bc-x { position: absolute; top: .35rem; right: .5rem; background: none; border: 0; color: inherit; font-size: 1.4rem; opacity: .7; cursor: pointer; padding: .3rem .5rem; }
+.intro-head { position: absolute; inset: 0 0 auto 0; z-index: 3; display: flex; justify-content: space-between; align-items: center; padding: max(.9rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) .9rem max(1.25rem, env(safe-area-inset-left)); background: linear-gradient(rgba(2,3,10,.6), rgba(2,3,10,0)); }
+.intro-head .brand { color: #F7DE9A; }
+.intro-head .rooms a { color: rgba(243,238,223,.65); }
+.intro-head .rooms a[aria-current="page"] { color: #F3EEDF; }
+.rooms a[aria-current="page"] { position: relative; }
+.rooms a[aria-current="page"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: .35rem; height: 1.5px; background: #F2C46B; border-radius: 2px; }
+.ib-sub { grid-column: 1 / -1; margin: -.3rem 0 .2rem; font-size: .85rem; color: rgba(243,238,223,.65); }
+.intro-birth .ib-actions { justify-content: stretch; }
+.intro-birth .ib-actions .btn { flex: 1; padding: .85rem 1rem; font-size: 1rem; }
+.intro-title { margin-bottom: 1.2rem; }
+.intro-ui { overflow-y: auto; padding-top: 4.5rem; justify-content: flex-end; }
+@media (max-height: 760px) { .intro-title { font-size: clamp(2.6rem, 10vw, 4rem); margin-bottom: .8rem; } .intro-kicker { display: none; } }
+.intro-cta { font: inherit; font-size: 1.05rem; font-weight: 600; color: #1A1406; cursor: pointer; padding: 1rem 1.6rem; border: 0; border-radius: 999px; width: min(22rem, 100%);
+  background: linear-gradient(135deg, #FFF1C9, #F2C46B 55%, #D99A3C); box-shadow: 0 10px 40px rgba(242,196,107,.35), 0 0 0 1px rgba(255,255,255,.3) inset; position: relative; overflow: hidden;
+  opacity: 0; transform: translateY(18px); transition: opacity 1s ease .6s, transform 1.2s cubic-bezier(.2,.7,.2,1) .6s, box-shadow .3s; }
+.intro-ui.on .intro-cta { opacity: 1; transform: none; }
+.intro-cta:hover { box-shadow: 0 14px 50px rgba(242,196,107,.5), 0 0 0 1px rgba(255,255,255,.4) inset; }
+.intro-cta::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); transform: translateX(-100%); animation: introShine 4s 2.5s ease-in-out infinite; }
+.intro-cta[hidden] { display: none; }
+.intro-birth { animation: birthSheet .6s cubic-bezier(.2,.7,.2,1); }
+@keyframes birthSheet { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
