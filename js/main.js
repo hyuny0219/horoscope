@@ -33,14 +33,17 @@
     plate.myth.textContent = s.myth;
     plate.cta.textContent = `${s.ko} 운세 보기`;
     plate.sky.href = `index.html?c=${s.iau}`;
+    // 원판이 곧 별자리 고르기: 지침이 가리키는 별자리의 운세로 바뀐다
+    if (typeof selectSign === "function" && ready && i !== current) selectSign(i);
   }
+  let ready = false;
 
   const wheel = new StarWheel($("#wheel"), { onChange: updatePlate });
   if (document.fonts) document.fonts.ready.then(() => { wheel.dirty = true; });
   bind("#plate-today", "click", () => wheel.goToToday());
   plate.cta.addEventListener("click", () => {
     selectSign(plateSign);
-    $("#reading").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    $("#reading-out").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
 
   /* ---------- 운세 ---------- */
@@ -54,17 +57,6 @@
   let dayOffset = 0;
   const signLabel = (i) => `${SIGNS[i].glyph} ${SIGNS[i].ko}`;
 
-  const picker = $("#picker");
-  SIGNS.forEach((s, i) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "pick";
-    b.setAttribute("role", "radio");
-    b.dataset.index = i;
-    b.innerHTML = `<span class="pick-frame" aria-hidden="true"><span class="pick-glyph">${s.glyph}</span></span><span class="pick-name">${s.ko}</span><span class="pick-range">${fmtRange(i)}</span>`;
-    b.addEventListener("click", () => selectSign(i));
-    picker.appendChild(b);
-  });
 
   document.querySelectorAll(".day-tab").forEach((t) => {
     t.addEventListener("click", () => { dayOffset = Number(t.dataset.offset); renderReading(); });
@@ -95,6 +87,7 @@
     profile = { birth, chart: birthChart(birth) };
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     current = profile.chart.sun;
+    wheel.goToSign(current);
     renderChart(); renderReading();
     $("#compat-me").value = v;
   });
@@ -123,11 +116,6 @@
 
   /* ----- 운세 해설지 ----- */
   function renderReading() {
-    picker.querySelectorAll(".pick").forEach((b) => {
-      const on = Number(b.dataset.index) === current;
-      b.setAttribute("aria-checked", on);
-      b.tabIndex = on ? 0 : -1;
-    });
     document.querySelectorAll(".day-tab").forEach((t) => t.setAttribute("aria-pressed", Number(t.dataset.offset) === dayOffset));
 
     const date = new Date(today);
@@ -243,19 +231,11 @@
   bindChartTips($("#compat-out"));
   if (profile) $("#compat-me").value = $("#birth-date").value;
 
-  // 라디오 그룹 키보드 이동
-  picker.addEventListener("keydown", (e) => {
-    const n = SIGNS.length;
-    let next = null;
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (current + 1) % n;
-    if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (current - 1 + n) % n;
-    if (next === null) return;
-    e.preventDefault();
-    selectSign(next);
-    picker.querySelector(`[data-index="${next}"]`).focus();
-  });
 
   renderChart();
   renderReading();
+  // 저장한 별 지도나 링크로 고른 별자리가 있으면 원판도 그 별자리로 돌린다
+  if (current !== signIndexForDoy(wheel.todayDoy)) wheel.goToSign(current);
+  ready = true;
   if (profile) $("#compat-me").value = $("#birth-date").value;
 })();

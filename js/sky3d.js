@@ -902,8 +902,14 @@ export class Sky3D {
     this.flyTo(p.clone().add(off), p);
   }
 
-  resetSpaceView() {
-    if (this.selected) this.orbitTo(this.selected);
+  resetSpaceView() { this.orbitPlanet("earth"); }
+
+  /* 첫 화면: 별들을 실제 거리로 펼치면서 우리 지구(관측 장소 위) 앞에 선다 */
+  startAtEarth() {
+    this.morphTarget = 1;
+    this.updateLineColors();
+    this.orbitPlanet("earth");
+    if (this.orbit) this.orbit.speed = 1 / 2.4;
   }
 
   setAutoRotate(on) { this.controls.autoRotate = on; }

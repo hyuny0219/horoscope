@@ -55,7 +55,7 @@ const callbacks = {
 const dome = new SkyView($("#dome"), callbacks);
 let sky = null;
 try {
-  const { Sky3D } = await import("./sky3d.js?v=202611172234");
+  const { Sky3D } = await import("./sky3d.js?v=202611172246");
   sky = new Sky3D($("#stage-3d"), callbacks);
   window.sky3d = sky; // 콘솔에서 살펴보기용
 } catch (err) {
@@ -573,4 +573,6 @@ const top = dome.visibleConstellations(20)[0];
 if (top && sky) { sky.yaw = top.center.az; sky.pitch = Math.min(60, Math.max(20, top.center.alt - 10)); }
 if (q && CONST_BY_ID[q]) { shared.selected = q; syncViews(); showDetail(CONST_BY_ID[q], true); renderVisible(); }
 setView(sky ? "space" : "dome");
+// 첫 화면은 지구에서 시작한다 (링크로 별자리를 골라 왔으면 그 별자리)
+if (sky && !(q && CONST_BY_ID[q])) sky.startAtEarth();
 if (document.fonts) document.fonts.ready.then(() => dome.draw());

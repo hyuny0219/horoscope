@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#03050C">
-  <title>성좌판과 오늘의 운세 — 별누리</title>
+  <title>오늘의 별자리 운세 — 별누리</title>
   <meta name="description" content="회전 성좌판으로 황도 12궁을 한눈에 보고, 내 별자리의 오늘 운세를 확인하세요.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611172234">
+  <link rel="stylesheet" href="css/style.css?v=202611172246">
 </head>
 <body>
   <canvas id="backdrop" aria-hidden="true"></canvas>
@@ -18,56 +18,66 @@
     <a class="brand" href="index.html">별누리</a>
     <nav class="rooms" aria-label="전시실">
       <a href="index.html"><span class="room-no">1</span>밤하늘</a>
-      <a href="#room-2" aria-current="page"><span class="room-no">2</span>성좌판</a>
-      <a href="#reading"><span class="room-no">3</span>운세</a>
+      <a href="#reading" aria-current="page"><span class="room-no">2</span>운세</a>
     </nav>
   </header>
 
   <main>
     <section class="entrance" aria-labelledby="show-title">
       <h1 class="show-title" id="show-title">하늘의 열두 자리</h1>
-      <p class="show-text">태양은 한 해 동안 열두 별자리 앞을 차례로 지나갑니다. 첫 번째 방에는 오늘 밤 실제 하늘을, 두 번째 방에는 태양이 지나는 그 길을 원판 하나에 담았고, 세 번째 방에는 별자리마다 오늘의 운세를 걸어 두었습니다. 배경의 별은 오늘 밤 9시 서울 하늘 그대로입니다.</p>
+      <p class="show-text">태양은 한 해 동안 열두 별자리 앞을 차례로 지나갑니다. 첫 번째 방에는 오늘 밤 실제 하늘을, 두 번째 방에는 태양이 지나는 그 길을 원판 하나에 담고 별자리마다 오늘의 운세를 걸어 두었습니다. 원판을 돌려 내 별자리를 고르면 아래 운세가 바로 바뀝니다. 배경의 별은 오늘 밤 9시 서울 하늘 그대로입니다.</p>
       <p class="show-meta">상설 전시. 운세는 매일 자정에 바뀝니다.</p>
     </section>
 
-    <section class="room room-plate" id="room-2" aria-labelledby="plate-name">
-      <p class="room-sign"><span class="room-no">2</span>성좌판</p>
-      <div class="hang">
-        <figure class="artwork">
-          <div class="frame frame-round">
-            <canvas id="wheel" tabindex="0"
-              aria-label="황도 12궁 회전 성좌판. 좌우 화살표로 별자리를 옮기고, Home 키로 오늘 날짜로 돌아갑니다."></canvas>
-          </div>
-          <figcaption class="artwork-hint">원판을 끌어 돌려 보세요. 위쪽 지침이 가리키는 날짜에 태양이 머무는 별자리가 밝아집니다.</figcaption>
-        </figure>
-
-        <aside class="label" aria-live="polite">
-          <p class="label-kicker" id="plate-date"></p>
-          <h2 class="label-title" id="plate-name"></h2>
-          <p class="label-sub" id="plate-latin"></p>
-          <dl class="label-facts">
-            <div><dt>기간</dt><dd id="plate-range"></dd></div>
-            <div><dt>원소</dt><dd id="plate-element"></dd></div>
-            <div><dt>수호성</dt><dd id="plate-planet"></dd></div>
-            <div><dt>키워드</dt><dd id="plate-keyword"></dd></div>
-          </dl>
-          <p class="label-body" id="plate-traits"></p>
-          <p class="label-note" id="plate-myth"></p>
-          <div class="label-actions">
-            <button type="button" class="btn btn-ink" id="plate-cta"></button>
-            <a class="btn btn-line" id="plate-sky" href="index.html">밤하늘에서 찾기</a>
-            <button type="button" class="btn btn-line" id="plate-today" hidden>오늘 날짜로 돌리기</button>
-          </div>
-        </aside>
-      </div>
-    </section>
 
     <section class="room room-reading" id="reading" aria-labelledby="reading-title">
-      <p class="room-sign"><span class="room-no">3</span>운세</p>
+      <p class="room-sign"><span class="room-no">2</span>운세</p>
       <div class="reading-intro">
         <h2 id="reading-title">오늘의 별자리 운세</h2>
         <p>운세는 그날 실제 달의 위치와 모양을 따라 바뀝니다. 내 별 지도를 만들어 두면 태어난 날의 달까지 함께 읽어 드립니다.</p>
       </div>
+
+
+      <div class="reading-plate">
+        <div class="hang">
+          <figure class="artwork">
+            <div class="frame frame-round">
+              <canvas id="wheel" tabindex="0"
+                aria-label="황도 12궁 회전 성좌판. 좌우 화살표로 별자리를 옮기고, Home 키로 오늘 날짜로 돌아갑니다."></canvas>
+            </div>
+            <figcaption class="artwork-hint">원판을 끌어 돌리거나 별자리를 눌러 내 별자리를 고르세요. 위쪽 지침이 가리키는 별자리의 운세가 아래에 나옵니다.</figcaption>
+          </figure>
+
+          <aside class="label" aria-live="polite">
+            <p class="label-kicker" id="plate-date"></p>
+            <h2 class="label-title" id="plate-name"></h2>
+            <p class="label-sub" id="plate-latin"></p>
+            <dl class="label-facts">
+              <div><dt>기간</dt><dd id="plate-range"></dd></div>
+              <div><dt>원소</dt><dd id="plate-element"></dd></div>
+              <div><dt>수호성</dt><dd id="plate-planet"></dd></div>
+              <div><dt>키워드</dt><dd id="plate-keyword"></dd></div>
+            </dl>
+            <p class="label-body" id="plate-traits"></p>
+            <p class="label-note" id="plate-myth"></p>
+            <div class="label-actions">
+              <button type="button" class="btn btn-ink" id="plate-cta">이 별자리 운세 보기</button>
+              <a class="btn btn-line" id="plate-sky" href="index.html">밤하늘에서 찾기</a>
+              <button type="button" class="btn btn-line" id="plate-today" hidden>오늘 날짜로 돌리기</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="reading-tools">
+        <div class="day-tabs" role="group" aria-label="날짜 선택">
+          <button type="button" class="day-tab" data-offset="-1">어제</button>
+          <button type="button" class="day-tab" data-offset="0">오늘</button>
+          <button type="button" class="day-tab" data-offset="1">내일</button>
+        </div>
+      </div>
+
+      <article class="sheet" id="reading-out" aria-live="polite"></article>
 
       <section class="chart-card" aria-labelledby="chart-title">
         <div class="chart-card-head">
@@ -82,18 +92,6 @@
         </form>
         <div class="chart-result" id="chart-result" hidden></div>
       </section>
-
-      <div class="picker" id="picker" role="radiogroup" aria-label="별자리 선택"></div>
-
-      <div class="reading-tools">
-        <div class="day-tabs" role="group" aria-label="날짜 선택">
-          <button type="button" class="day-tab" data-offset="-1">어제</button>
-          <button type="button" class="day-tab" data-offset="0">오늘</button>
-          <button type="button" class="day-tab" data-offset="1">내일</button>
-        </div>
-      </div>
-
-      <article class="sheet" id="reading-out" aria-live="polite"></article>
 
       <section class="cards" aria-labelledby="cards-title">
         <h3 id="cards-title">오늘의 별 카드</h3>
@@ -117,17 +115,17 @@
     <p>운세는 재미로 즐겨 주세요. 별자리 기간은 해마다 하루 정도 달라질 수 있습니다.</p>
   </footer>
 
-  <script src="js/data.js?v=202611172234"></script>
-  <script src="js/sky-data.js?v=202611172234"></script>
-  <script src="js/sky-ko.js?v=202611172234"></script>
-  <script src="js/astro.js?v=202611172234"></script>
-  <script src="js/milkyway-data.js?v=202611172234"></script>
-  <script src="js/milkyway.js?v=202611172234"></script>
-  <script src="js/wheel.js?v=202611172234"></script>
-  <script src="js/astrology.js?v=202611172234"></script>
-  <script src="js/fortune.js?v=202611172234"></script>
-  <script src="js/charts.js?v=202611172234"></script>
-  <script src="js/main.js?v=202611172234"></script>
-  <script src="js/backdrop.js?v=202611172234"></script>
+  <script src="js/data.js?v=202611172246"></script>
+  <script src="js/sky-data.js?v=202611172246"></script>
+  <script src="js/sky-ko.js?v=202611172246"></script>
+  <script src="js/astro.js?v=202611172246"></script>
+  <script src="js/milkyway-data.js?v=202611172246"></script>
+  <script src="js/milkyway.js?v=202611172246"></script>
+  <script src="js/wheel.js?v=202611172246"></script>
+  <script src="js/astrology.js?v=202611172246"></script>
+  <script src="js/fortune.js?v=202611172246"></script>
+  <script src="js/charts.js?v=202611172246"></script>
+  <script src="js/main.js?v=202611172246"></script>
+  <script src="js/backdrop.js?v=202611172246"></script>
 </body>
 </html>

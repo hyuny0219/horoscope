@@ -417,6 +417,7 @@ input[type="date"], select {
 /* ---------- 3 운세 확장: 별 지도, 하늘, 차트, 별 카드, 궁합 ---------- */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .chart-card, .cards, .compat { max-width: 64rem; margin-bottom: 2.75rem; }
+.sheet + .chart-card { margin-top: 2.75rem; }
 .chart-card {
   padding: 1.5rem 1.75rem; border: 1px solid var(--hair); background: rgba(14, 18, 34, 0.5);
   -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
@@ -674,3 +675,8 @@ button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
   .sky-pop-body { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .sky-pop { animation: none; } }
+
+/* 운세 방 안의 성좌판: 원판이 곧 별자리 고르기 */
+.reading-plate { margin: 0 0 2.5rem; }
+.reading-plate .hang { align-items: center; }
+@media (max-width: 520px) { .reading-plate { margin-bottom: 1.75rem; } }
