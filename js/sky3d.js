@@ -1060,6 +1060,51 @@ export class Sky3D {
     return (r / (d * Math.tan((this.camera.fov / 2) * D2R))) * (this.overlay.clientHeight / 2);
   }
 
+  /* 누르면 정보가 나오는 별과 행성 위치에 희미한 원을 그린다 (화면에서 너무 붙은 것은 하나만) */
+  drawTapRings(g, W, H) {
+    const v = new THREE.Vector3(), seen = new Set(), cell = 14, in3D = this.morph > 0.5;
+    const lim = in3D ? 6.6 : this.uniforms.uMagLimit.value;
+    const camPos = this.camera.position;
+    g.save();
+    g.lineWidth = 1;
+    g.strokeStyle = `rgba(247,222,154,${in3D ? 0.2 : 0.24})`;
+    g.beginPath();
+    for (const [, i] of SKY_NAMED) {
+      let mag = SKY_STARS[i][2];
+      if (!in3D) {
+        if (this.starAA[i].alt < 1) continue;
+      } else {
+        // 입체 우주: 카메라에서 본 밝기 (가까이 가면 밝아지고 멀어지면 어두워진다)
+        const p = this.starPos(i, v), dc = Math.max(camPos.distanceTo(p), 0.05), de = Math.max(p.length(), 0.05);
+        mag += 5 * Math.log10(dc / de);
+      }
+      if (mag > lim) continue;
+      const s = this.toScreen(this.starPos(i, v));
+      if (!s || s[0] < 0 || s[1] < 0 || s[0] > W || s[1] > H) continue;
+      const key = `${Math.round(s[0] / cell)},${Math.round(s[1] / cell)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const r = 5 + Math.max(0, 2.5 - mag) * 1.6;
+      g.moveTo(s[0] + r, s[1]); g.arc(s[0], s[1], r, 0, Math.PI * 2);
+    }
+    g.stroke();
+    // 행성: 하늘에 뜬 것(올려다보기), 태양계 안에서 작게 보이는 것(입체 우주)
+    g.strokeStyle = "rgba(255,214,150,0.32)";
+    g.beginPath();
+    for (const p of this.planets || []) {
+      if (!in3D && (p.alt === undefined || p.alt < 0 || p.mag > lim + 0.5)) continue;
+      if (in3D && (!this.solar.visible || p.id === "earth")) continue;
+      const s = this.planetScreen(p, v);
+      if (!s) continue;
+      const pr = in3D ? this.pxRadius(this.bodyWorld(p.id), this.bodyRadius(p.id)) : 0;
+      if (pr > 10) continue; // 크게 보이면 둘레는 필요 없다
+      const r = Math.max(7, pr + 5);
+      g.moveTo(s[0] + r, s[1]); g.arc(s[0], s[1], r, 0, Math.PI * 2);
+    }
+    g.stroke();
+    g.restore();
+  }
+
   /* 화면 밖에 있어도 그쪽 가장자리 위치를 돌려준다: [x, y, onScreen] */
   edgePoint(v, m) {
     const W = this.overlay.clientWidth, H = this.overlay.clientHeight;
@@ -1425,6 +1470,9 @@ export class Sky3D {
         g.beginPath(); g.arc(s[0], s[1], rad, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
       }
     }
+
+    // 누를 수 있는 별(이름 있는 별)과 행성에 희미한 둘레. 발견하기에서는 힌트가 되므로 그리지 않는다
+    if (this.mode === "explore" && (in3D || this.uniforms.uVis.value > 0.3)) this.drawTapRings(g, W, H);
 
     // 별자리 이름
     const minRank = this.camera.fov < 45 ? 3 : 2;

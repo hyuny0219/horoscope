@@ -191,7 +191,7 @@ class SkyView {
   nearestStar(x, y, radius = 12) {
     let best = null, bestD = radius;
     this.stars.forEach((s, i) => {
-      if (s.alt < 0 || !NAMED_BY_INDEX.has(i)) return;
+      if (s.alt < 0 || !NAMED_BY_INDEX.has(i) || s.mag > Math.min(5.5, 3.2 + (this.zoom - 1) * 1.4)) return; // 둘레를 그린 별만
       const [px, py] = this.project(s);
       const d = Math.hypot(px - x, py - y) - Math.max(0, 3 - s.mag) * 1.5;
       if (d < bestD) { bestD = d; best = i; }
@@ -200,6 +200,12 @@ class SkyView {
   }
 
   handleClick(x, y) {
+    // 행성
+    for (const p of this.planets || []) {
+      if (p.alt < 0 || p.mag > 6.5) continue;
+      const [px, py] = this.project(p);
+      if (Math.hypot(px - x, py - y) < 14) { this.opts.onPlanet?.(p); return; }
+    }
     const star = this.nearestStar(x, y);
     if (star != null) setTimeout(() => { const k = this.consts.find((q) => q.segs.some((sg) => sg.includes(this.stars[star]))); if (!k || this.isRevealed(k.id)) this.opts.onStar?.(star); });
     const c = this.nearestConstellation(x, y, 20);
@@ -284,6 +290,25 @@ class SkyView {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
 
+    // 누를 수 있는 별(이름 있는 별)과 행성에 희미한 둘레를 그린다. 발견하기에서는 힌트가 되므로 그리지 않는다
+    if (this.mode === "explore" && starVis > 0.3) {
+      const seen = new Set(), cell = 15, magCut = Math.min(5.5, 3.2 + (this.zoom - 1) * 1.4); // 확대할수록 더 어두운 별까지
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(247,222,154,0.24)";
+      ctx.beginPath();
+      for (const n of this.named) {
+        const st = this.stars[n.i];
+        if (!st || st.alt < 2 || st.mag > magCut) continue;
+        const [x, y] = this.project(st);
+        const key = `${Math.round(x / cell)},${Math.round(y / cell)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const r = Math.max(0.45, Math.min(4.2, 0.55 + (4.6 - st.mag) * 0.62)) * Math.sqrt(this.zoom) * (S < 500 ? 0.8 : 1) + 3.5;
+        ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
+      }
+      ctx.stroke();
+    }
+
     // 행성
     ctx.font = `600 ${Math.max(11, S * 0.017)}px "IBM Plex Sans KR", sans-serif`;
     ctx.textAlign = "left";
@@ -293,6 +318,7 @@ class SkyView {
       const r = Math.max(2, 4.2 - p.mag * 0.5);
       ctx.fillStyle = `rgb(${p.color})`;
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      if (this.mode === "explore") { ctx.strokeStyle = "rgba(255,214,150,0.35)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r + 4, 0, Math.PI * 2); ctx.stroke(); }
       ctx.fillStyle = "rgba(255,214,150,0.95)";
       ctx.fillText(p.ko, x + r + 4, y - 4);
     }
