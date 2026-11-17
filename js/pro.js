@@ -573,6 +573,21 @@ const Pro = (() => {
     const top = list.slice(0, 8).map((s) => ({ ...s, t: synastryText(s) }));
     return { total, html: `
       <div class="meters">${gs.map(([g, v]) => meter(SYN_GROUP_KO[g], v)).join("")}</div>
+      <h4 class="pro-h4">항목별로 보면</h4>
+      <div class="syn-areas">${gs.map(([g, v]) => {
+        const A = SYN_AREA[g], tier = v >= 72 ? "hi" : v >= 55 ? "mid" : "lo";
+        const items = [...groups[g]].sort((x, y) => Math.abs(y.val) - Math.abs(x.val));
+        const good = items.find((x) => !x.t.hard), hard = items.find((x) => x.t.hard);
+        const pair = (x) => `나의 ${BODY_KO[x.a].ko} ${x.aspect.ko} 상대의 ${BODY_KO[x.b].ko}`;
+        return `<section class="syn-area syn-${tier}">
+          <p class="syn-k"><b>${SYN_GROUP_KO[g]}</b><span class="syn-badge">${tier === "hi" ? "잘 맞아요" : tier === "mid" ? "무난해요" : "노력이 필요해요"}</span><span class="syn-score">${v}점</span></p>
+          <p class="syn-what">${A.what}</p>
+          ${items.length ? `<p>${A[tier]}</p>` : ""}
+          ${good ? `<p class="syn-ev is-soft"><span>👍 ${pair(good)}</span> ${good.t.text}</p>` : ""}
+          ${hard ? `<p class="syn-ev is-hard"><span>⚠️ ${pair(hard)}</span> ${hard.t.text}</p>` : ""}
+          ${!items.length ? `<p>두 사람의 차트에서 이 부분을 직접 잇는 각도가 없습니다. 크게 부딪히지도, 특별히 끌어 주지도 않아 각자 자기 방식대로 흘러가는 영역입니다.</p>` : ""}
+          <p class="syn-tip"><b>잘 지내는 법</b> ${A.tip}</p>
+        </section>`; }).join("")}</div>
       <h4 class="pro-h4">두 사람의 하늘이 만나는 곳</h4>
       <ul class="ev-list">${top.map((s) => `<li class="${s.t.hard ? "is-hard" : "is-soft"}"><span class="ev-ic">${BODY_KO[s.a].glyph}${s.aspect.sym}${BODY_KO[s.b].glyph}</span><b>나의 ${BODY_KO[s.a].ko} ${s.aspect.ko} 상대의 ${BODY_KO[s.b].ko}</b> <span class="muted small">orb ${s.orb.toFixed(1)}°</span><br><span class="small">${s.t.text}</span></li>`).join("") || "<li class='muted'>가까운 각도가 없습니다. 서로 독립적인 관계입니다.</li>"}</ul>` };
   }

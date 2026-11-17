@@ -1052,3 +1052,21 @@ p > .ev-ic { position: static; display: inline-block; width: auto; margin-right:
 @media (min-width: 720px) { .st-grid { grid-template-columns: 1fr 1fr; } }
 .chart-form[hidden], .chart-empty[hidden] { display: none; }
 .chart-empty { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; margin: 1rem 0; color: var(--wall-muted); }
+
+/* 궁합 항목별 풀이 */
+.syn-areas { display: grid; gap: .8rem; margin: .6rem 0 1.4rem; }
+@media (min-width: 900px) { .syn-areas { grid-template-columns: 1fr 1fr; } }
+.syn-area { border: 1px solid var(--hair); border-radius: 12px; padding: .9rem 1rem; background: rgba(14, 18, 34, .55); line-height: 1.7; }
+.syn-area p { margin: .35rem 0 0; }
+.syn-k { display: flex; align-items: center; gap: .5rem; margin: 0 !important; }
+.syn-k b { font-size: 1.05rem; color: var(--brass-light); }
+.syn-badge { font-size: .75rem; padding: .1rem .55rem; border-radius: 999px; background: rgba(255, 255, 255, .08); }
+.syn-hi .syn-badge { background: rgba(120, 220, 150, .18); color: #9fe3b0; }
+.syn-lo .syn-badge { background: rgba(255, 156, 122, .18); color: #ff9c7a; }
+.syn-score { margin-left: auto; font-family: var(--serif); font-size: 1.15rem; }
+.syn-what { font-size: .82rem; color: var(--wall-muted); }
+.syn-ev { font-size: .88rem; padding-left: .7rem; border-left: 2px solid rgba(159, 227, 176, .5); }
+.syn-ev.is-hard { border-left-color: rgba(255, 156, 122, .6); }
+.syn-ev span { display: block; font-weight: 700; }
+.syn-tip { font-size: .88rem; }
+.syn-tip b { color: var(--brass-light); margin-right: .3rem; }
