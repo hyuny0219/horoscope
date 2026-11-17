@@ -5,7 +5,7 @@
  */
 const SIGNS = [
   {
-    id: "aries", ko: "양자리", latin: "Aries", glyph: "♈", start: [3, 21],
+    id: "aries", iau: "Ari", ko: "양자리", latin: "Aries", glyph: "♈", start: [3, 21],
     element: "불", planet: "화성",
     keyword: "시작하는 용기",
     traits: "먼저 움직이는 사람입니다. 망설임보다 실행이 빠르고, 새로운 일 앞에서 가장 크게 빛납니다. 다만 끝맺음보다 시작에 마음이 쏠리기 쉽습니다.",
@@ -14,7 +14,7 @@ const SIGNS = [
     lines: [[0, 1], [1, 2], [2, 3]],
   },
   {
-    id: "taurus", ko: "황소자리", latin: "Taurus", glyph: "♉", start: [4, 20],
+    id: "taurus", iau: "Tau", ko: "황소자리", latin: "Taurus", glyph: "♉", start: [4, 20],
     element: "흙", planet: "금성",
     keyword: "단단한 안정",
     traits: "느리지만 흔들리지 않습니다. 좋은 음식, 편안한 공간, 오래 곁에 둔 물건을 아낍니다. 한번 정한 마음은 쉽게 바꾸지 않습니다.",
@@ -23,7 +23,7 @@ const SIGNS = [
     lines: [[4, 3], [3, 2], [5, 0], [0, 1], [1, 2], [2, 7]],
   },
   {
-    id: "gemini", ko: "쌍둥이자리", latin: "Gemini", glyph: "♊", start: [5, 21],
+    id: "gemini", iau: "Gem", ko: "쌍둥이자리", latin: "Gemini", glyph: "♊", start: [5, 21],
     element: "공기", planet: "수성",
     keyword: "호기심과 대화",
     traits: "궁금한 것이 많고 말과 글로 세상과 연결됩니다. 두 가지 일을 동시에 해내는 재주가 있지만, 관심이 금세 옮겨 가기도 합니다.",
@@ -32,7 +32,7 @@ const SIGNS = [
     lines: [[0, 2], [2, 3], [3, 4], [1, 5], [5, 6], [6, 7], [2, 5], [0, 1]],
   },
   {
-    id: "cancer", ko: "게자리", latin: "Cancer", glyph: "♋", start: [6, 22],
+    id: "cancer", iau: "Cnc", ko: "게자리", latin: "Cancer", glyph: "♋", start: [6, 22],
     element: "물", planet: "달",
     keyword: "품어 주는 마음",
     traits: "가까운 사람을 지키는 힘이 강합니다. 겉은 단단해 보여도 속은 섬세하고, 기억과 추억을 오래 간직합니다.",
@@ -41,7 +41,7 @@ const SIGNS = [
     lines: [[1, 0], [0, 2], [2, 3], [2, 4]],
   },
   {
-    id: "leo", ko: "사자자리", latin: "Leo", glyph: "♌", start: [7, 23],
+    id: "leo", iau: "Leo", ko: "사자자리", latin: "Leo", glyph: "♌", start: [7, 23],
     element: "불", planet: "태양",
     keyword: "당당한 존재감",
     traits: "어디서든 눈에 띄고, 사람들을 이끄는 따뜻한 카리스마가 있습니다. 인정받을 때 가장 큰 힘을 내고, 자존심도 그만큼 큽니다.",
@@ -50,7 +50,7 @@ const SIGNS = [
     lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [2, 6], [6, 8], [8, 7], [7, 0]],
   },
   {
-    id: "virgo", ko: "처녀자리", latin: "Virgo", glyph: "♍", start: [8, 23],
+    id: "virgo", iau: "Vir", ko: "처녀자리", latin: "Virgo", glyph: "♍", start: [8, 23],
     element: "흙", planet: "수성",
     keyword: "섬세한 정리",
     traits: "작은 차이를 알아보는 눈이 있습니다. 일을 꼼꼼히 다듬고 남을 돕는 데서 보람을 느끼지만, 스스로에게 지나치게 엄격할 때가 있습니다.",
@@ -59,7 +59,7 @@ const SIGNS = [
     lines: [[0, 1], [1, 2], [2, 3], [1, 4], [4, 5], [2, 6], [6, 0], [6, 7]],
   },
   {
-    id: "libra", ko: "천칭자리", latin: "Libra", glyph: "♎", start: [9, 23],
+    id: "libra", iau: "Lib", ko: "천칭자리", latin: "Libra", glyph: "♎", start: [9, 23],
     element: "공기", planet: "금성",
     keyword: "균형과 조화",
     traits: "양쪽 이야기를 모두 듣고 가장 공정한 답을 찾으려 합니다. 아름다운 것과 좋은 관계를 소중히 여기지만, 결정 앞에서는 오래 고민합니다.",
@@ -68,7 +68,7 @@ const SIGNS = [
     lines: [[0, 1], [1, 3], [3, 0], [0, 2], [3, 4]],
   },
   {
-    id: "scorpio", ko: "전갈자리", latin: "Scorpius", glyph: "♏", start: [10, 23],
+    id: "scorpio", iau: "Sco", ko: "전갈자리", latin: "Scorpius", glyph: "♏", start: [10, 23],
     element: "물", planet: "명왕성",
     keyword: "깊은 집중",
     traits: "한번 마음먹으면 끝까지 파고드는 집중력이 있습니다. 감정이 깊고 직관이 예리하며, 쉽게 속을 드러내지 않습니다.",
@@ -77,7 +77,7 @@ const SIGNS = [
     lines: [[0, 1], [1, 2], [1, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 10], [10, 11], [11, 12], [12, 13]],
   },
   {
-    id: "sagittarius", ko: "사수자리", latin: "Sagittarius", glyph: "♐", start: [11, 23],
+    id: "sagittarius", iau: "Sgr", ko: "사수자리", latin: "Sagittarius", glyph: "♐", start: [11, 23],
     element: "불", planet: "목성",
     keyword: "먼 곳을 향한 화살",
     traits: "자유와 모험을 사랑합니다. 낙천적이고 솔직하며, 새로운 장소와 생각을 만날 때 살아 있음을 느낍니다.",
@@ -86,7 +86,7 @@ const SIGNS = [
     lines: [[7, 1], [7, 0], [0, 1], [1, 2], [2, 3], [1, 3], [3, 4], [4, 5], [5, 6], [6, 0], [6, 3]],
   },
   {
-    id: "capricorn", ko: "염소자리", latin: "Capricornus", glyph: "♑", start: [12, 22],
+    id: "capricorn", iau: "Cap", ko: "염소자리", latin: "Capricornus", glyph: "♑", start: [12, 22],
     element: "흙", planet: "토성",
     keyword: "꾸준한 오르막",
     traits: "목표를 정하면 한 걸음씩 끝까지 올라갑니다. 책임감이 강하고 현실적이며, 시간이 지날수록 진가가 드러나는 사람입니다.",
@@ -95,7 +95,7 @@ const SIGNS = [
     lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 1]],
   },
   {
-    id: "aquarius", ko: "물병자리", latin: "Aquarius", glyph: "♒", start: [1, 20],
+    id: "aquarius", iau: "Aqr", ko: "물병자리", latin: "Aquarius", glyph: "♒", start: [1, 20],
     element: "공기", planet: "천왕성",
     keyword: "새로운 생각",
     traits: "남들과 다른 방식으로 세상을 봅니다. 독립적이고 공동체의 미래를 고민하며, 틀에 갇히는 것을 무엇보다 싫어합니다.",
@@ -104,7 +104,7 @@ const SIGNS = [
     lines: [[9, 0], [0, 1], [1, 2], [2, 3], [3, 4], [1, 5], [5, 6], [6, 7], [6, 8]],
   },
   {
-    id: "pisces", ko: "물고기자리", latin: "Pisces", glyph: "♓", start: [2, 19],
+    id: "pisces", iau: "Psc", ko: "물고기자리", latin: "Pisces", glyph: "♓", start: [2, 19],
     element: "물", planet: "해왕성",
     keyword: "경계 없는 공감",
     traits: "다른 사람의 감정을 자기 일처럼 느낍니다. 상상력과 예술적 감각이 풍부하지만, 현실의 경계가 흐려질 때가 있습니다.",

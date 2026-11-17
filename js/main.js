@@ -11,7 +11,7 @@
   const plate = {
     date: $("#plate-date"), name: $("#plate-name"), latin: $("#plate-latin"),
     range: $("#plate-range"), element: $("#plate-element"), planet: $("#plate-planet"), keyword: $("#plate-keyword"),
-    traits: $("#plate-traits"), myth: $("#plate-myth"), cta: $("#plate-cta"),
+    traits: $("#plate-traits"), myth: $("#plate-myth"), cta: $("#plate-cta"), sky: $("#plate-sky"),
   };
 
   function updatePlate(doy, i) {
@@ -31,6 +31,7 @@
     plate.traits.textContent = s.traits;
     plate.myth.textContent = s.myth;
     plate.cta.textContent = `${s.ko} 운세 보기`;
+    plate.sky.href = `sky.html?c=${s.iau}`;
   }
 
   const wheel = new StarWheel($("#wheel"), { onChange: updatePlate });
@@ -44,6 +45,8 @@
   /* ---------- 운세 ---------- */
   const today = new Date();
   let current = signIndexForDate(today.getMonth() + 1, today.getDate());
+  const asked = SIGNS.findIndex((s) => s.id === new URLSearchParams(location.search).get("sign"));
+  if (asked >= 0) current = asked;
   let dayOffset = 0;
 
   const picker = $("#picker");
@@ -53,7 +56,7 @@
     b.className = "pick";
     b.setAttribute("role", "radio");
     b.dataset.index = i;
-    b.innerHTML = `<span class="pick-glyph" aria-hidden="true">${s.glyph}</span><span class="pick-name">${s.ko}</span><span class="pick-range">${fmtRange(i)}</span>`;
+    b.innerHTML = `<span class="pick-frame" aria-hidden="true"><span class="pick-glyph">${s.glyph}</span></span><span class="pick-name">${s.ko}</span><span class="pick-range">${fmtRange(i)}</span>`;
     b.addEventListener("click", () => selectSign(i));
     picker.appendChild(b);
   });
@@ -138,23 +141,4 @@
 
   renderReading();
 
-  /* ---------- 배경 별 (한 번만 그리는 정적 배경) ---------- */
-  const sky = $("#sky");
-  function paintSky() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    sky.width = innerWidth * dpr; sky.height = innerHeight * dpr;
-    const ctx = sky.getContext("2d");
-    ctx.scale(dpr, dpr);
-    const rand = mulberry32(7);
-    const count = Math.round((innerWidth * innerHeight) / 4500);
-    for (let k = 0; k < count; k++) {
-      ctx.globalAlpha = rand() * 0.5 + 0.1;
-      ctx.fillStyle = "#F2EAD3";
-      ctx.beginPath();
-      ctx.arc(rand() * innerWidth, rand() * innerHeight, rand() * 0.9 + 0.2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  paintSky();
-  addEventListener("resize", paintSky);
 })();
