@@ -4,7 +4,6 @@
  * 좌표계: +x = 동쪽, +y = 천정, -z = 북쪽
  */
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const R = 1000;          // 천구 반지름
 const LY = 3.3;          // 1광년 = 3.3 단위 (300광년 ≈ 천구 반지름)
@@ -232,6 +231,102 @@ void main() {
   gl_FragColor = vec4(col * (1.0 - uMorph), 1.0);
 }`;
 
+
+/* 자유 회전 조작 (OrbitControls 대신).
+ * OrbitControls는 위쪽(y축)을 고정해서 머리 위·발밑에서 회전이 멈춘다. 여기서는 카메라의 위쪽도 함께 돌려
+ * 어느 방향으로든 끝없이 돌 수 있다. 한 손가락(왼쪽 버튼) 끌기 = 돌리기, 두 손가락·오른쪽 버튼·Shift 끌기 = 옮기기. */
+class FreeOrbit {
+  constructor(camera, el) {
+    this.camera = camera; this.el = el;
+    this.target = new THREE.Vector3();
+    this.enabled = false;
+    this.minDistance = 0; this.maxDistance = Infinity;
+    this.autoRotate = false; this.autoRotateSpeed = 0.25; // rad/s
+    this.rotV = new THREE.Vector2(); this.panV = new THREE.Vector2();
+    this.ptrs = new Map(); this.mode = null; this.last = null;
+    el.addEventListener("pointerdown", (e) => this.down(e));
+    el.addEventListener("pointermove", (e) => this.move(e));
+    const up = (e) => this.up(e);
+    el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
+  pos(e) { const r = this.el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  mid() { const v = [...this.ptrs.values()]; return v.reduce((a, b) => [a[0] + b[0] / v.length, a[1] + b[1] / v.length], [0, 0]); }
+  down(e) {
+    this.ptrs.set(e.pointerId, this.pos(e));
+    try { this.el.setPointerCapture(e.pointerId); } catch {}
+    this.mode = this.ptrs.size >= 2 || e.button === 2 || e.shiftKey ? "pan" : "rotate";
+    this.last = this.ptrs.size >= 2 ? this.mid() : this.pos(e);
+    this.rotV.set(0, 0); this.panV.set(0, 0); this.lastT = performance.now();
+  }
+  move(e) {
+    if (!this.ptrs.has(e.pointerId)) return;
+    this.ptrs.set(e.pointerId, this.pos(e));
+    const p = this.ptrs.size >= 2 ? this.mid() : this.pos(e);
+    if (!this.last) { this.last = p; return; }
+    const dx = p[0] - this.last[0], dy = p[1] - this.last[1];
+    this.last = p;
+    if (!this.enabled) return;
+    const now = performance.now(), dt = Math.max(0.008, (now - this.lastT) / 1000); this.lastT = now;
+    if (this.mode === "rotate") {
+      const k = Math.PI / Math.max(300, this.el.clientHeight); // 화면 높이만큼 끌면 반 바퀴
+      this.rotate(-dx * k, -dy * k);
+      this.rotV.set(-dx * k / dt, -dy * k / dt);
+    } else {
+      this.pan(dx, dy);
+      this.panV.set(dx / dt, dy / dt);
+    }
+  }
+  up(e) {
+    this.ptrs.delete(e.pointerId);
+    if (this.ptrs.size === 1) { this.mode = this.mode === "pan" ? "pan" : "rotate"; this.last = [...this.ptrs.values()][0]; this.rotV.set(0, 0); }
+    if (this.ptrs.size === 0) {
+      this.mode = null; this.last = null;
+      if (performance.now() - this.lastT > 80) { this.rotV.set(0, 0); this.panV.set(0, 0); } // 멈췄다 놓으면 관성 없음
+    }
+  }
+  basis() {
+    const cam = this.camera, f = this.target.clone().sub(cam.position);
+    if (f.lengthSq() < 1e-30) f.set(0, 0, -1);
+    f.normalize();
+    const u = cam.up.clone().addScaledVector(f, -cam.up.dot(f));
+    if (u.lengthSq() < 1e-8) { // 위쪽이 시선과 겹치면 아무 수직 방향이나
+      u.set(Math.abs(f.y) < 0.9 ? 0 : 1, Math.abs(f.y) < 0.9 ? 1 : 0, 0);
+      u.addScaledVector(f, -u.dot(f));
+    }
+    u.normalize();
+    return { f, u, r: new THREE.Vector3().crossVectors(f, u).normalize() };
+  }
+  rotate(ax, ay) {
+    const cam = this.camera, { u, r } = this.basis();
+    const q = new THREE.Quaternion().setFromAxisAngle(u, ax).multiply(new THREE.Quaternion().setFromAxisAngle(r, ay));
+    const off = cam.position.clone().sub(this.target).applyQuaternion(q);
+    cam.position.copy(this.target).add(off);
+    cam.up.copy(u).applyQuaternion(q).normalize();
+  }
+  pan(dx, dy) {
+    const cam = this.camera, { u, r } = this.basis();
+    const d = cam.position.distanceTo(this.target);
+    const s = (2 * d * Math.tan((cam.fov / 2) * D2R)) / Math.max(1, this.el.clientHeight);
+    const mv = r.multiplyScalar(-dx * s).addScaledVector(u, dy * s);
+    cam.position.add(mv); this.target.add(mv);
+  }
+  update(dt = 1 / 60) {
+    const cam = this.camera;
+    if (this.enabled && !this.mode) {
+      if (this.autoRotate) this.rotate(-this.autoRotateSpeed * dt, 0);
+      // 손을 떼면 관성으로 조금 더 돌다가 멈춘다
+      if (this.rotV.lengthSq() > 1e-6) { this.rotate(this.rotV.x * dt, this.rotV.y * dt); this.rotV.multiplyScalar(Math.exp(-dt * 5)); }
+      if (this.panV.lengthSq() > 1) { this.pan(this.panV.x * dt, this.panV.y * dt); this.panV.multiplyScalar(Math.exp(-dt * 6)); }
+    }
+    const off = cam.position.clone().sub(this.target), d = off.length();
+    const c = Math.max(this.minDistance, Math.min(this.maxDistance, d));
+    if (d > 0 && Math.abs(c - d) > 1e-12) cam.position.copy(this.target).addScaledVector(off, c / d);
+    cam.up.copy(this.basis().u);
+    cam.lookAt(this.target);
+  }
+}
+
 export class Sky3D {
   constructor(container, opts = {}) {
     this.container = container;
@@ -256,15 +351,9 @@ export class Sky3D {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(this.fov, 1, 0.01, 4000000);
-    this.controls = new OrbitControls(this.camera, this.overlay);
-    this.controls.enabled = false;
-    Object.assign(this.controls, {
-      enableDamping: true, dampingFactor: 0.08,
-      enablePan: true, screenSpacePanning: true, zoomToCursor: false, // 확대해도 초점(대상)이 화면 가운데에 머문다
-      rotateSpeed: 0.55, zoomSpeed: 2.2, panSpeed: 0.9,
-      minDistance: 1e-7, maxDistance: 1500 * LY, autoRotateSpeed: 0.6,
-      enableZoom: false, // 확대는 직접: 가리키는 곳으로, 가까운 천체에 끌려 들어가게 (zoomAt)
-    });
+    // 입체 우주 조작: 위아래 끝에서 멈추지 않고 어느 방향으로든 360° 돌 수 있다 (확대는 zoomAt에서 따로)
+    this.controls = new FreeOrbit(this.camera, this.overlay);
+    Object.assign(this.controls, { minDistance: 1e-7, maxDistance: 1500 * LY, autoRotateSpeed: 0.25 });
 
     this.build();
     this.bindInput();
@@ -1489,8 +1578,9 @@ export class Sky3D {
     const cam = this.camera;
     if (this.orbit) {
       const o = this.orbit; o.t = Math.min(1, o.t + dt * (o.speed || 0.45));
-      cam.fov = 60; cam.up.set(0, 1, 0);
+      cam.fov = 60;
       if (o.exiting) {
+        cam.up.lerp(new THREE.Vector3(0, 1, 0), Math.min(1, dt * 4)).normalize();
         const e = o.t < 0.5 ? 4 * o.t ** 3 : 1 - (-2 * o.t + 2) ** 3 / 2;
         cam.position.lerpVectors(o.from, o.to, e);
         cam.lookAt(o.fromTarget.clone().lerp(dirFromAltAz(this.pitch, this.yaw).multiplyScalar(R), e));
@@ -1507,7 +1597,7 @@ export class Sky3D {
     } else if (this.controls.enabled) {
       cam.fov = 60;
       this.applyZoom(dt);
-      this.controls.update();
+      this.controls.update(dt);
     } else {
       cam.position.set(0, 0, 0);
       cam.fov = this.fov;
