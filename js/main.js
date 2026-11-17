@@ -50,7 +50,9 @@
   const today = new Date();
   const PROFILE_KEY = "byeoljaripan.profile", CARD_KEY = "byeoljaripan.cards";
   const loadJSON = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-  let profile = loadJSON(PROFILE_KEY, null); // {birth, chart}
+  // 생일·성별은 저장하지 않는다: 새로고침하면 다시 입력 (예전에 저장된 값도 지움)
+  try { localStorage.removeItem(PROFILE_KEY); localStorage.removeItem("byeolnuri.gender"); } catch (err) {}
+  let profile = null; // {birth, chart}
   let current = profile ? profile.chart.sun : signIndexForDate(today.getMonth() + 1, today.getDate());
   const asked = SIGNS.findIndex((s) => s.id === new URLSearchParams(location.search).get("sign"));
   if (asked >= 0) current = asked;
@@ -84,9 +86,8 @@
     const pl = birthPick.get();
     const birth = WorldPlace.toBirth(v, $("#birth-time").value, pl);
     birth.city = pl.city;
-    try { localStorage.setItem("byeolnuri.gender", $("#birth-gender").value); } catch (err) {}
+    window.BYEOL_GENDER = $("#birth-gender").value;
     profile = { birth, chart: birthChart(birth) };
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     current = profile.chart.sun;
     wheel.goToSign(current);
     renderChart(); renderReading();
@@ -106,7 +107,7 @@
   }
   document.addEventListener("click", (e) => {
     if (!e.target.closest("#chart-clear")) return;
-    profile = null; localStorage.removeItem(PROFILE_KEY); renderChart(); renderReading();
+    profile = null; renderChart(); renderReading();
   });
 
   /* 운세 기준: 태양궁 / 달궁 / 상승궁 (CHANI처럼 상승궁 기준으로 읽기도 한다) */
@@ -265,7 +266,6 @@
 
 
   Pro.init();
-  try { const g = localStorage.getItem("byeolnuri.gender") || ""; ["#birth-gender", "#start-gender"].forEach((id) => { const el = $(id); if (el) el.value = g; }); } catch (err) {}
 
   /* ---------- 시작 화면: 생년월일부터 ---------- */
   bind("#start-form", "submit", (e) => {

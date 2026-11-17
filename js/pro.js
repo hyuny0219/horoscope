@@ -415,7 +415,6 @@ const Pro = (() => {
   }
 
   /* 별자리로 본 스타 — 닮은 스타, 잘 맞는/엇갈리는 스타 (재미로) */
-  const GENDER_KEY = "byeolnuri.gender";
   let starCache = null;
   function starCharts() {
     if (!starCache && typeof STAR_PEOPLE !== "undefined") starCache = STAR_PEOPLE.map(([name, g, job, y, m, d, tz]) => ({ name, g, job, y, m, d, N: natalChart({ y, m, d, hh: NaN, mm: 0, tz }) }));
@@ -424,7 +423,7 @@ const Pro = (() => {
   function starsSection(N) {
     const list = starCharts();
     if (!list.length) return "";
-    let gender = ""; try { gender = localStorage.getItem(GENDER_KEY) || ""; } catch (e) {}
+    const gender = window.BYEOL_GENDER || "";
     const me = { sun: N.sky.sun.sign, moon: N.sky.moon.sign };
     const ids = [["sun", "태양", 4], ["moon", "달", 3], ["venus", "금성", 1.5], ["mars", "화성", 1], ["mercury", "수성", 1]];
     const scored = list.map((c) => {
