@@ -17,6 +17,7 @@ const callbacks = {
   onSelect: (c) => { shared.selected = c ? c.id : null; syncViews(); showDetail(c); renderVisible(); },
   onDiscover: (c) => { saveFound(); toast(`새 별자리를 찾았습니다: ${c.ko}`); renderDiscover(); },
   onStar: (i) => showStar(i),
+  onPlanet: (p) => showPlanet(p.id),
   onMiss: () => toast("별자리 선이 지나는 별이 아닙니다. 밝은 별 근처를 눌러 보세요."),
   onHover: (h) => {
     const tip = $("#stage-tip");
@@ -234,6 +235,7 @@ $("#space-auto").addEventListener("click", (e) => {
   sky?.setAutoRotate(on);
 });
 $("#space-reset").addEventListener("click", () => sky?.resetSpaceView());
+$("#space-solar").addEventListener("click", () => { sky?.goSolarSystem(); toast("태양계로 갑니다. 행성을 두 번 누르면 그 행성 가까이 날아갑니다."); });
 $("#zoom-in").addEventListener("click", () => active().setZoom(active().zoom * 1.4));
 $("#zoom-out").addEventListener("click", () => active().setZoom(active().zoom / 1.4));
 
@@ -278,6 +280,11 @@ $("#obs-now").addEventListener("click", () => setNow());
 $("#obs-cond").addEventListener("change", (e) => { shared.skyCondition = e.target.value; syncViews(); });
 $("#opt-lines").addEventListener("change", (e) => { shared.showLines = e.target.checked; syncViews(); });
 $("#opt-names").addEventListener("change", (e) => { shared.showNames = e.target.checked; syncViews(); });
+$("#obs-gain").addEventListener("input", (e) => {
+  const g = Number(e.target.value);
+  sky?.setBrightness(g);
+  $("#obs-gain-out").textContent = g < 0.9 ? "실제보다 어둡게" : g < 1.15 ? "실제와 비슷하게" : g < 1.7 ? "보통보다 밝게" : "아주 밝게";
+});
 $("#opt-starnames").addEventListener("change", (e) => { shared.showStarNames = e.target.checked; syncViews(); });
 
 /* ---------- 별 정보 ---------- */
@@ -328,11 +335,51 @@ function showStar(i) {
 }
 $("#star-close").addEventListener("click", () => showStar(null));
 
+/* ---------- 행성 정보 ---------- */
+function showPlanet(id) {
+  const p = (sky?.planets || planetPositions(obsTime())).find((q) => q.id === id);
+  if (!p) return;
+  if (sky) { sky.selectedPlanet = id; sky.selectedStar = null; }
+  const box = $("#star-detail");
+  box.hidden = false;
+  const aa = p.ra !== undefined ? toAltAz(p.ra, p.dec, place.lat, localSiderealDeg(obsTime(), place.lon)) : null;
+  $("#star-pos").textContent = p.id === "earth" ? "우리가 서 있는 곳" : aa.alt > 0
+    ? `${aa.alt > 70 ? "머리 위" : `${directionName(aa.az)} ${altitudeWords(aa.alt)}`}, 고도 ${Math.round(aa.alt)}°`
+    : "이 시각에는 지평선 아래에 있습니다.";
+  $("#star-name").textContent = p.ko;
+  $("#star-sub").textContent = `${p.kind}, 태양을 한 바퀴 도는 데 ${p.period}`;
+  const lm = p.delta ? (p.delta * 499.005) / 60 : null; // 1AU를 빛이 가는 데 499초
+  const facts = [["태양에서", `${p.r.toFixed(2)}AU (1AU = 태양과 지구 사이 거리)`]];
+  if (p.delta) {
+    facts.push(["지구에서", `${p.delta.toFixed(2)}AU, 빛으로 ${lm < 60 ? `${Math.round(lm)}분` : `${(lm / 60).toFixed(1)}시간`}`]);
+    facts.push(["밝기", `${p.mag.toFixed(1)}등급${p.mag < 6 ? "" : " (맨눈으로는 안 보임)"}`]);
+    const sign = SIGNS[Math.floor(eclipticLongitudeOf(p.ra, p.dec) / 30) % 12];
+    facts.push(["황도 12궁으로는", `${sign.glyph} ${sign.ko}`]);
+  }
+  const dl = $("#star-facts");
+  dl.replaceChildren(...facts.map(([k, v]) => { const d = document.createElement("div"); const dt = document.createElement("dt"); dt.textContent = k; const dd = document.createElement("dd"); dd.textContent = v; d.append(dt, dd); return d; }));
+  $("#star-story").textContent = p.note;
+  $("#star-light").textContent = p.delta ? `지금 보이는 ${p.ko}의 빛은 햇빛이 ${p.ko}에 반사되어 약 ${lm < 60 ? `${Math.round(lm)}분` : `${(lm / 60).toFixed(1)}시간`} 걸려 온 것입니다.` : "";
+  const cb = $("#star-const");
+  cb.hidden = !sky;
+  cb.textContent = viewKind === "space" ? `${p.ko} 가까이 가기` : "태양계에서 보기";
+  cb.onclick = () => { if (viewKind !== "space") setView("space"); setTimeout(() => sky.orbitPlanet(id), viewKind === "space" ? 0 : 2500); };
+  if (matchMedia("(max-width: 1100px)").matches) box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+/* 적경·적위 → 황경 (행성이 어느 황도 별자리 방향에 있는지) */
+function eclipticLongitudeOf(ra, dec) {
+  const e = 23.43928 * DEG, a = ra * DEG, d = dec * DEG;
+  return norm360(Math.atan2(Math.sin(a) * Math.cos(e) + Math.tan(d) * Math.sin(e), Math.cos(a)) / DEG);
+}
+
 /* ---------- 찾기 ---------- */
 const SEARCH = [
   ...CONSTELLATIONS.map((c) => ({ kind: "c", id: c.id, label: c.ko, keys: [c.ko, c.ko.replace(/자리$/, ""), c.la] })),
   ...SKY_NAMED.map(([en, i, ko]) => ({ kind: "s", id: i, label: starName(i), keys: [starName(i), ko, en, STAR_TRAD[en]].filter(Boolean) })),
   { kind: "c", id: "UMa", label: "북두칠성 (큰곰자리)", keys: ["북두칠성"] },
+  ...PLANETS.map((p) => ({ kind: "p", id: p.id, label: p.ko, keys: [p.ko, p.id] })),
+  { kind: "p", id: "venus", label: "샛별 (금성)", keys: ["샛별", "개밥바라기"] },
   { kind: "s", id: SKY_NAMED.find((n) => n[0] === "Polaris")?.[1], label: "북극성", keys: ["북극성", "폴라리스"] },
 ];
 $("#search-list").replaceChildren(...[...new Set(SEARCH.map((x) => x.label))].map((l) => new Option(l)));
@@ -345,6 +392,13 @@ $("#search").addEventListener("submit", (e) => {
   if (!hit || hit.id == null) { toast(`"${$("#search-input").value}"을(를) 찾지 못했습니다. 다른 이름으로 찾아보세요.`); return; }
   if (viewKind === "space") setView("look");
   if (hit.kind === "c") { focusConstellation(hit.id); return; }
+  if (hit.kind === "p") {
+    showPlanet(hit.id);
+    const p = sky?.planets.find((q) => q.id === hit.id);
+    if (p && p.alt > 0) { sky.turnTo(p.az, Math.max(5, Math.min(85, p.alt))); toast(`${p.ko}: ${directionName(p.az)} ${altitudeWords(p.alt)}에 있습니다.`); }
+    else if (hit.id !== "earth") toast(`${PLANETS.find((q) => q.id === hit.id).ko}은(는) 지금 지평선 아래에 있습니다. 태양계에서 보기를 눌러 보세요.`);
+    return;
+  }
   const aa = starAltAz(hit.id);
   showStar(hit.id);
   if (aa.alt > 0) { sky?.lookAtStar(hit.id); toast(`${starName(hit.id)}: ${directionName(aa.az)} ${altitudeWords(aa.alt)}에 있습니다.`); }

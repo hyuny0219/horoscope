@@ -63,6 +63,7 @@ class SkyView {
     });
     this.sun = { ...sunPosition(this.time) };
     Object.assign(this.sun, aa(this.sun.ra, this.sun.dec));
+    this.planets = planetPositions(this.time).filter((p) => p.ra !== undefined).map((p) => ({ ...p, ...aa(p.ra, p.dec) }));
     this.moon = moonPosition(this.time);
     Object.assign(this.moon, aa(this.moon.ra, this.moon.dec));
     const eps = obliquity(this.time);
@@ -282,6 +283,20 @@ class SkyView {
       ctx.fillStyle = `rgba(${cr},${cg},${cb},${Math.min(1, a)})`;
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
+
+    // 행성
+    ctx.font = `600 ${Math.max(11, S * 0.017)}px "IBM Plex Sans KR", sans-serif`;
+    ctx.textAlign = "left";
+    for (const p of this.planets) {
+      if (p.alt < 0 || p.mag > 6.5) continue;
+      const [x, y] = this.project(p);
+      const r = Math.max(2, 4.2 - p.mag * 0.5);
+      ctx.fillStyle = `rgb(${p.color})`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(255,214,150,0.95)";
+      ctx.fillText(p.ko, x + r + 4, y - 4);
+    }
+    ctx.textAlign = "center";
 
     // 해와 달
     if (this.sun.alt > -1) this.drawSun();

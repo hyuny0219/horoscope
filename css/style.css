@@ -341,7 +341,7 @@ input[type="date"], select {
 .field select, .field input[type="date"] { width: 100%; }
 .field label output { color: var(--wall-ink); margin-left: 0.4rem; font-weight: 500; }
 .field-row { display: flex; gap: 0.5rem; align-items: center; }
-.field-row input[type="range"] { flex: 1; accent-color: var(--brass-light); }
+.field-row input[type="range"], .field > input[type="range"] { flex: 1; width: 100%; accent-color: var(--brass-light); }
 .range-ticks { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--wall-muted); padding-right: 4rem; }
 
 .mode-tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid var(--hair); }
