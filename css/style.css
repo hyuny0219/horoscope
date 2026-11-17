@@ -1017,3 +1017,9 @@ button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
 .term-pop .term-more { color: rgba(220, 226, 255, .7); font-size: .85rem; border-top: 1px solid rgba(255, 255, 255, .1); padding-top: .5rem; margin-top: .6rem; }
 .term-x { position: absolute; top: .4rem; right: .5rem; background: none; border: 0; color: inherit; font-size: 1.4rem; line-height: 1; padding: .3rem .5rem; cursor: pointer; opacity: .7; }
 .term-hint { font-size: .8rem; opacity: .65; margin: .2rem 0 0; }
+.ev-ic { cursor: help; text-decoration: underline dotted rgba(255, 214, 140, .55); text-underline-offset: .25em; }
+.ev-ic.on { color: #fff3d6; }
+.term-list { list-style: none; margin: .4rem 0 0; padding: 0; }
+.term-list li { margin: .35rem 0; padding-left: 1.7rem; text-indent: -1.7rem; }
+.term-list .term-s { display: inline-block; width: 1.7rem; text-indent: 0; text-align: center; color: #ffd68c; }
+p > .ev-ic { position: static; display: inline-block; width: auto; margin-right: .4rem; overflow: visible; }

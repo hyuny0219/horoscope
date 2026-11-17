@@ -73,14 +73,56 @@
     const e = T[k]; if (!e) return null;
     return { t: e.t, s: e.s, d: e.d, more: ["conj", "sextile", "square", "trine", "opp"].includes(k) ? T.aspect.d : "" };
   }
+  /* 목록 왼쪽 기호 묶음(☉□♃, ●, ♂℞ …) 풀이 */
+  const SYM = {
+    "●": ["새달", "달이 보이지 않는 날. 새로 시작하고 바라는 것을 심기 좋은 때입니다."],
+    "○": ["보름달", "달이 가득 찬 날. 일이 정점에 이르고 결과와 감정이 드러납니다."],
+    "◐": ["일식", "새달보다 강한 출발점. 예고 없이 문이 열리고 닫힐 수 있습니다."],
+    "◑": ["월식", "보름보다 강한 매듭. 오래 끌어온 일이 드러나거나 정리됩니다."],
+    "℞": ["역행", T.retro.d],
+    "D": ["순행", "역행을 마치고 다시 앞으로 가기 시작한다는 뜻입니다."],
+    "✦": ["좋은 흐름", "힘이 실리는 흐름입니다. 적극적으로 써 보세요."],
+    "◆": ["부딪히는 흐름", "긴장이 있지만 잘 쓰면 성장의 계기가 됩니다."],
+    "▲": ["조심할 흐름", "서두르지 말고 한 번 더 확인하면 좋은 흐름입니다."],
+  };
+  function symbolParts(str) {
+    const B = typeof BODY_KO !== "undefined" ? BODY_KO : {};
+    const A = typeof ASPECT_DEFS !== "undefined" ? ASPECT_DEFS : [];
+    const toks = [];
+    for (const [id, b] of Object.entries(B)) toks.push({ g: b.glyph, kind: "body", id, b });
+    for (const a of A) toks.push({ g: a.sym, kind: "asp", a });
+    for (const g of Object.keys(SYM)) toks.push({ g, kind: "sym" });
+    toks.sort((x, y) => y.g.length - x.g.length);
+    const out = []; let i = 0; const s = str.replace(/\uFE0E|\uFE0F/g, "").trim();
+    while (i < s.length) {
+      const t = toks.find((k) => s.startsWith(k.g, i));
+      if (!t) { i++; continue; }
+      out.push(t); i += t.g.length;
+    }
+    return out;
+  }
+  function showSymbols(el) {
+    const parts = symbolParts(el.textContent);
+    if (!parts.length) return;
+    const rows = parts.map((t) => {
+      if (t.kind === "body") return `<li><span class="term-s">${t.g}</span><b>${t.b.ko}</b> — ${t.b.role || t.b.area}</li>`;
+      if (t.kind === "asp") { const e = T[t.a.key]; return `<li><span class="term-s">${t.g}</span><b>${e.t}</b> — ${e.d}</li>`; }
+      const [k, d] = SYM[t.g]; return `<li><span class="term-s">${t.g}</span><b>${k}</b> — ${d}</li>`;
+    }).join("");
+    const isAsp = parts.some((t) => t.kind === "asp") && parts.filter((t) => t.kind === "body").length === 2;
+    openPop(`<p class="term-t">${parts.map((t) => t.g).join(" ")}</p><ul class="term-list">${rows}</ul>${isAsp ? `<p class="term-more">왼쪽 행성과 오른쪽 행성이 가운데 기호의 각도로 만난다는 뜻입니다.</p>` : ""}`, el);
+  }
   let pop;
   function show(k, from) {
     const e = entry(k); if (!e) return;
+    openPop(`<p class="term-t">${e.s ? `<span class="term-s">${e.s}</span>` : ""}${e.t}</p><p>${e.d}</p>${e.more ? `<p class="term-more">${e.more}</p>` : ""}`, from);
+  }
+  function openPop(html, from) {
     if (!pop) {
       pop = document.createElement("div"); pop.className = "term-pop"; pop.setAttribute("role", "dialog");
       document.body.append(pop);
     }
-    pop.innerHTML = `<button type="button" class="term-x" aria-label="닫기">×</button><p class="term-t">${e.s ? `<span class="term-s">${e.s}</span>` : ""}${e.t}</p><p>${e.d}</p>${e.more ? `<p class="term-more">${e.more}</p>` : ""}`;
+    pop.innerHTML = `<button type="button" class="term-x" aria-label="닫기">×</button>${html}`;
     pop.hidden = false; pop.classList.add("on");
     document.querySelectorAll(".term.on").forEach((x) => x.classList.remove("on"));
     from && from.classList.add("on");
@@ -91,6 +133,8 @@
     if (t) { ev.preventDefault(); ev.stopPropagation(); return show(t.dataset.term, t); }
     const hs = ev.target.closest(".hs");
     if (hs) { const n = hs.querySelector("small"); if (n) return show("h" + n.textContent.trim(), hs); }
+    const ic = ev.target.closest(".ev-ic");
+    if (ic) { ev.preventDefault(); return showSymbols(ic); }
     const rx = ev.target.closest(".rx");
     if (rx) return show("retro", rx);
     if (pop && !pop.hidden && (ev.target.closest(".term-x") || !ev.target.closest(".term-pop"))) hide();
