@@ -64,7 +64,7 @@ const Pro = (() => {
     if (!N) {
       box.innerHTML = `<h3 class="pro-h">나만의 트랜짓</h3>
         <p class="muted">생년월일(가능하면 태어난 시각까지)을 넣으면, 오늘 움직이는 행성이 <b>내가 태어난 순간의 하늘</b>과 이루는 각도를 계산해 나만의 운세를 보여 드립니다.</p>
-        <button type="button" class="btn btn-ink" data-go-tab="chart">내 차트 만들기</button>`;
+        <div class="unique-actions"><button type="button" class="btn btn-ink" data-go-tab="chart">내 차트 만들기</button><button type="button" class="btn btn-line share-btn" data-share="today">오늘 카드 공유</button></div>`;
       return;
     }
     const list = transitsNow(ms, N);
@@ -72,14 +72,23 @@ const Pro = (() => {
     for (const t of list) groups[transitCategory(t)].push(t);
     const doList = [...new Set(groups.power.slice(0, 4).map((t) => TRANSIT_DO[t.transit]?.[0]).filter(Boolean))].slice(0, 3);
     const dontList = [...new Set([...groups.trouble, ...groups.pressure].slice(0, 4).map((t) => TRANSIT_DO[t.transit]?.[1]).filter(Boolean))].slice(0, 3);
+    // 느린 행성은 정확한 각도의 날짜를 찾아 준다
+    const exactDate = (t) => {
+      const win = { sun: 4, mercury: 6, venus: 6, mars: 10, jupiter: 60, saturn: 90, uranus: 200, neptune: 300, pluto: 300 }[t.transit];
+      if (!win) return null;
+      const n = [...N.points, ...(N.asc ? [N.asc, N.mc] : [])].find((p) => p.id === t.natal);
+      const hits = exactAspects(ms - win * 86400000, ms + win * 86400000, [{ a: t.transit, b: t.natal, fixed: n.lon }], (win > 30 ? 2 : 0.25) * 86400000)
+        .filter((h) => h.aspect.key === t.aspect.key);
+      return hits.length ? hits.sort((a, b) => Math.abs(a.ms - ms) - Math.abs(b.ms - ms))[0].ms : null;
+    };
     const item = (t) => {
-      const s = transitSentence(t);
-      return `<li><p class="tr-title">${s.title} <span class="muted">orb ${t.orb.toFixed(1)}° · ${s.phase}</span></p><p>${s.line}</p></li>`;
+      const s = transitSentence(t), ex = exactDate(t);
+      return `<li><p class="tr-title">${s.title} <span class="muted">orb ${t.orb.toFixed(1)}° · ${s.phase}${ex ? ` · 정확한 날 ${fmtDay(ex)}` : ""}</span></p><p>${s.line}</p></li>`;
     };
     const col = (k) => `<section class="tr-col tr-${k}"><h4>${CATEGORY_KO[k].ko} <small>${CATEGORY_KO[k].desc}</small></h4>
       ${groups[k].length ? `<ul>${groups[k].slice(0, 4).map(item).join("")}</ul>` : `<p class="muted small">오늘은 해당하는 각도가 없습니다.</p>`}</section>`;
     box.innerHTML = `
-      <h3 class="pro-h">나만의 트랜짓 <small>오늘 하늘 × 내 출생 차트</small></h3>
+      <div class="pro-h-row"><h3 class="pro-h">나만의 트랜짓 <small>오늘 하늘 × 내 출생 차트</small></h3><button type="button" class="btn btn-star share-btn" data-share="today">오늘 카드 공유</button></div>
       <div class="tr-grid">${col("power")}${col("pressure")}${col("trouble")}</div>
       <div class="dodont">
         <div><h4>Do</h4><ul>${(doList.length ? doList : ["평소 리듬대로 지내기"]).map((x) => `<li>${x}</li>`).join("")}</ul></div>
@@ -112,11 +121,6 @@ const Pro = (() => {
     const personal = state.natal ? exactAspects(start, end, ["sun", "mercury", "venus", "mars"].flatMap((a) => [...state.natal.points.filter((p) => p.id !== "moon"), ...(state.natal.asc ? [state.natal.asc, state.natal.mc] : [])].map((n) => ({ a, b: n.id, fixed: n.lon }))), 12 * 3600000) : [];
     const sunH = houseOf(Math.floor(sunLongitude(now) / 30), base);
     const best = [...week].sort((a, b) => b.score - a.score)[0], worst = [...week].sort((a, b) => a.score - b.score)[0];
-    const mundaneText = (x) => {
-      const A = BODY_KO[x.a], B = BODY_KO[x.b];
-      const good = x.aspect.nature === "soft" || (x.aspect.key === "conj" && ["venus", "jupiter", "sun", "mercury"].includes(x.a) && !["saturn", "mars", "pluto"].includes(x.b));
-      return `${josaWord(A.area, "과/와")} ${josaWord(B.area, "이/가")} ${good ? "서로 돕습니다" : "부딪힙니다"}`;
-    };
     $("#week-out").innerHTML = `
       <h3 class="pro-h">이번 주 운세 <small>${SIGNS[base].glyph} ${SIGNS[base].ko} · ${fmtDay(start)} ~ ${fmtDay(end - 86400000)}</small></h3>
       <p class="lead">태양이 ${houseTag(sunH)}을 지나고 있습니다. ${HOUSE_FOCUS[sunH]}</p>
@@ -126,9 +130,9 @@ const Pro = (() => {
       <ul class="run-list">${moonRuns.map((r) => `<li><span class="when">${fmtShort(r.from)} ${fmtTime(r.from)} ~</span> ${signTag(r.sign)} · ${houseTag(houseOf(r.sign, base))}<br><span class="muted small">${HOUSE_FOCUS[houseOf(r.sign, base)]}</span></li>`).join("")}</ul>
       <h4 class="pro-h4">이번 주 하늘의 사건</h4>
       <ul class="ev-list">${[...ev.map((e) => ({ ms: e.ms, html: (() => { const t = eventText(e); return `<span class="ev-ic">${t.icon}</span><b>${fmtFull(e.ms)}</b> ${t.title} — ${t.text}`; })() })),
-        ...mundane.map((x) => ({ ms: x.ms, html: `<span class="ev-ic">${BODY_KO[x.a].glyph}${x.aspect.sym}${BODY_KO[x.b].glyph}</span><b>${fmtFull(x.ms)}</b> ${BODY_KO[x.a].ko} ${x.aspect.ko} ${BODY_KO[x.b].ko} — ${mundaneText(x)}` }))]
+        ...mundane.map((x) => ({ ms: x.ms, html: `<span class="ev-ic">${BODY_KO[x.a].glyph}${x.aspect.sym}${BODY_KO[x.b].glyph}</span><b>${fmtFull(x.ms)}</b> ${BODY_KO[x.a].ko} ${x.aspect.ko} ${BODY_KO[x.b].ko} — ${mundaneText(x.a, x.b, x.aspect)}` }))]
         .sort((a, b) => a.ms - b.ms).map((x) => `<li>${x.html} ${skyBtn(x.ms, "하늘")}</li>`).join("") || "<li class='muted'>큰 사건 없이 조용한 한 주입니다.</li>"}</ul>
-      ${state.natal ? `<h4 class="pro-h4">나에게 정확히 닿는 날</h4><ul class="ev-list">${personal.map((x) => { const s = transitSentence({ transit: x.a, natal: x.b, aspect: x.aspect, applying: true }); return `<li><span class="ev-ic">${BODY_KO[x.a].glyph}${x.aspect.sym}${BODY_KO[x.b].glyph}</span><b>${fmtFull(x.ms)}</b> ${s.title}<br><span class="small">${s.line}</span></li>`; }).join("") || "<li class='muted'>이번 주에는 빠른 행성이 내 차트와 정확히 만나는 날이 없습니다.</li>"}</ul>` : `<p class="muted small">내 차트를 만들면 이번 주 나에게 정확히 닿는 행성의 날짜도 보여 드립니다.</p>`}`;
+      ${state.natal ? `<h4 class="pro-h4">나에게 정확히 닿는 날</h4><ul class="ev-list">${personal.map((x) => { const s = transitSentence({ transit: x.a, natal: x.b, aspect: x.aspect, applying: true }); return `<li><span class="ev-ic">${BODY_KO[x.a].glyph}${x.aspect.sym}${BODY_KO[x.b].glyph}</span><b>${fmtFull(x.ms)}</b> ${s.headline}<br><span class="small">${s.short}</span></li>`; }).join("") || "<li class='muted'>이번 주에는 빠른 행성이 내 차트와 정확히 만나는 날이 없습니다.</li>"}</ul>` : `<p class="muted small">내 차트를 만들면 이번 주 나에게 정확히 닿는 행성의 날짜도 보여 드립니다.</p>`}`;
   }
 
   /* ---------- 3-2. 이번 달 (달력) ---------- */
@@ -266,6 +270,7 @@ const Pro = (() => {
     if (typeof SKY_NAMED !== "undefined") {
       for (const [, i] of SKY_NAMED) { const ly = SKY_STARS[i][4]; if (ly && (!birthStar || Math.abs(ly - age) < Math.abs(birthStar.ly - age)) && SKY_STARS[i][2] < 4.5) birthStar = { i, ly }; }
     }
+    state.birthStar = birthStar; state.real = real;
     const placeQ = `&lat=${b.lat}&lon=${b.lon}&place=${encodeURIComponent(b.place || "")}`;
     box.innerHTML = `
       <p class="chart-who">${b.y}년 ${b.m}월 ${b.d}일${N.known ? ` ${b.hh}시 ${b.mm}분` : " (시각 모름: 정오 기준, 상승궁·하우스는 태양 기준)"}, ${esc(b.place || "")}</p>
@@ -289,7 +294,7 @@ const Pro = (() => {
       <h4 class="pro-h4">천체 해설</h4>
       <ul class="natal-list">${N.points.map((p) => `<li><b>${BODY_KO[p.id].glyph} ${BODY_KO[p.id].ko} · ${SIGNS[p.sign].ko}${p.retro ? " ℞" : ""}</b><br>${natalSentence(p)}</li>`).join("")}</ul>
       <h4 class="pro-h4">주요 각도</h4>
-      <ul class="ev-list">${aspects.slice(0, 8).map(({ p, q, a }) => `<li><span class="ev-ic">${BODY_KO[p.id].glyph}${a.sym}${BODY_KO[q.id].glyph}</span><b>${BODY_KO[p.id].ko} ${a.ko} ${BODY_KO[q.id].ko}</b> <span class="muted small">orb ${a.orb.toFixed(1)}°</span><br><span class="small">${josaWord(BODY_KO[p.id].area, "과/와")} ${josaWord(BODY_KO[q.id].area, "이/가")} ${a.nature === "soft" ? "자연스럽게 서로를 돕습니다" : a.nature === "hard" ? "긴장 속에서 서로를 단련합니다" : "하나로 섞여 강하게 드러납니다"}.</span></li>`).join("")}</ul>
+      <ul class="ev-list">${aspects.slice(0, 8).map(({ p, q, a }) => `<li><span class="ev-ic">${BODY_KO[p.id].glyph}${a.sym}${BODY_KO[q.id].glyph}</span><b>${BODY_KO[p.id].ko} ${a.ko} ${BODY_KO[q.id].ko}</b> <span class="muted small">orb ${a.orb.toFixed(1)}°</span><br><span class="small">${josaWord(BODY_KO[p.id].area, "과/와")} ${josaWord(BODY_KO[q.id].area, "이/가")} ${a.nature === "soft" ? "타고난 재능처럼 자연스럽게 함께 움직입니다. 힘들이지 않고 쓰는 강점이니, 의식적으로 꺼내 쓸수록 빛납니다" : a.nature === "hard" ? "서로 긴장을 주고받습니다. 평생 다듬어 가는 숙제이지만, 바로 이 긴장이 당신을 움직이는 원동력이 됩니다" : "하나로 녹아 강하게 드러납니다. 차트에서 가장 눈에 띄는 개성 중 하나입니다"}.</span></li>`).join("")}</ul>
       <section class="unique">
         <h4 class="pro-h4">별누리에서만 보는 내 하늘</h4>
         <p>${real === SIGNS[N.sky.sun.sign].ko
@@ -299,6 +304,7 @@ const Pro = (() => {
         <div class="unique-actions">
           <a class="btn btn-ink" href="${skyLink(N.ms, placeQ + "&view=look")}">태어난 순간의 밤하늘 보기</a>
           ${birthStar ? `<a class="btn btn-line" href="index.html?s=${birthStar.i}">생일 별 찾아가기</a>` : ""}
+          <button type="button" class="btn btn-star share-btn" data-share="chart">내 차트 카드 공유</button>
         </div>
       </section>
       <button type="button" class="link-btn" id="chart-clear">별 지도 지우기</button>`;
@@ -323,6 +329,59 @@ const Pro = (() => {
       <div class="meters">${gs.map(([g, v]) => meter(SYN_GROUP_KO[g], v)).join("")}</div>
       <h4 class="pro-h4">두 사람의 하늘이 만나는 곳</h4>
       <ul class="ev-list">${top.map((s) => `<li class="${s.t.hard ? "is-hard" : "is-soft"}"><span class="ev-ic">${BODY_KO[s.a].glyph}${s.aspect.sym}${BODY_KO[s.b].glyph}</span><b>나의 ${BODY_KO[s.a].ko} ${s.aspect.ko} 상대의 ${BODY_KO[s.b].ko}</b> <span class="muted small">orb ${s.orb.toFixed(1)}°</span><br><span class="small">${s.t.text}</span></li>`).join("") || "<li class='muted'>가까운 각도가 없습니다. 서로 독립적인 관계입니다.</li>"}</ul>` };
+  }
+
+  /* ---------- 공유 카드 ---------- */
+  async function shareToday() {
+    const ms = Date.now() + state.offset * 86400000, sky = skyAt(ms), sign = state.sign;
+    const date = new Date(ms);
+    const moon = moonPosition(ms);
+    const retro = BODIES.filter((id) => sky[id].retro && ["mercury", "venus", "mars"].includes(id)).map((id) => `${BODY_KO[id].ko} 역행`);
+    const skyLine = `오늘 달은 ${SIGNS[sky.moon.sign].ko}, ${moonPhaseName(moon)}. ${retro.length ? retro.join(", ") + " 중." : ""}`;
+    let headlineKicker, headline, body, doList, dontList, basisLabel;
+    const N = state.natal;
+    const list = N ? transitsNow(ms, N).filter((t) => t.transit !== "moon" || true) : [];
+    if (N && list.length) {
+      const pick = list.find((t) => transitCategory(t) === "power" && t.transit !== "moon") || list.find((t) => t.transit !== "moon") || list[0];
+      const sx = transitSentence(pick), cat = CATEGORY_KO[transitCategory(pick)];
+      headlineKicker = `오늘 가장 강한 하늘 · ${cat.ko}`;
+      headline = sx.headline;
+      body = TRANSIT_SPECIAL[`${pick.transit}-${pick.natal}-${pick.aspect.key}`] || TRANSIT_EFFECT[pick.transit][pick.aspect.nature === "soft" ? 0 : pick.aspect.nature === "hard" ? 1 : 2];
+      const groups = { power: [], other: [] };
+      for (const t of list) (transitCategory(t) === "power" ? groups.power : groups.other).push(t);
+      doList = [...new Set(groups.power.map((t) => TRANSIT_DO[t.transit][0]))].slice(0, 3);
+      dontList = [...new Set(groups.other.map((t) => TRANSIT_DO[t.transit][1]))].slice(0, 3);
+      basisLabel = "내 출생 차트로 읽은 오늘";
+    } else {
+      const f = makeFortune(sign, date, null);
+      headlineKicker = `오늘의 총운 ${"★".repeat(f.categories[0].score)}${"☆".repeat(5 - f.categories[0].score)}`;
+      headline = `달이 ${SIGNS[sign].ko}와 ${f.aspect.name}`;
+      body = `${f.aspect.text} ${f.categories[0].text}`;
+      doList = [f.mission]; dontList = [f.avoid];
+      basisLabel = "오늘의 별자리 운세";
+    }
+    if (!doList.length) doList = ["평소 리듬대로 지내기"];
+    if (!dontList.length) dontList = ["무리한 일정 잡기"];
+    const cv = await ShareCard.today({
+      seed: hashString(`${fmtDay(ms)}:${sign}`), dateLabel: fmtDay(ms), sign, basisLabel, skyLine,
+      headlineKicker, headline, body, doList, dontList,
+      points: BODIES.map((id) => sky[id]),
+      ringCaption: "오늘 하늘의 행성 배치입니다. 파란 선은 조화, 붉은 선은 긴장의 각도입니다.",
+    });
+    ShareCard.preview(cv, `byeolnuri-${SIGNS[sign].id}.png`, `${SIGNS[sign].ko} · ${fmtDay(ms)}`);
+  }
+  async function shareChart() {
+    const N = state.natal;
+    if (!N) return;
+    const b = N.birth;
+    const line = `${SIGNS[N.sky.sun.sign].keyword}을 지닌 ${SIGNS[N.sky.sun.sign].ko}, 마음은 ${MOON_IN[N.sky.moon.sign]}.${N.asc ? ` 사람들은 나를 ${RISING_IN[N.asc.sign]}으로 기억합니다.` : ""}`;
+    const cv = await ShareCard.chart({
+      seed: hashString(`${b.y}-${b.m}-${b.d}`), whoLabel: `${b.y}년 ${b.m}월 ${b.d}일${N.known ? ` ${b.hh}시 ${String(b.mm).padStart(2, "0")}분` : ""} · ${b.place || ""}`,
+      points: N.points, ascLon: N.asc ? N.asc.lon : null,
+      sun: N.sky.sun.sign, moon: N.sky.moon.sign, rising: N.asc ? N.asc.sign : null,
+      line, footLine: state.birthStar ? `생일 별 · ${starInfo(state.birthStar.i).name}` : `실제 하늘의 태양 · ${state.real || ""}`,
+    });
+    ShareCard.preview(cv, "byeolnuri-chart.png", "나의 출생 차트");
   }
 
   /* ---------- 탭 ---------- */
@@ -357,6 +416,10 @@ const Pro = (() => {
       const tabs = [...document.querySelectorAll(".pro-tab")], i = tabs.findIndex((b) => b.dataset.tab === state.tab);
       const n = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
       setTab(n.dataset.tab); n.focus();
+    });
+    document.addEventListener("click", (e) => {
+      const sh = e.target.closest("[data-share]");
+      if (sh) { (sh.dataset.share === "chart" ? shareChart() : shareToday()).catch((err) => console.error(err)); }
     });
     document.addEventListener("click", (e) => { const g = e.target.closest("[data-go-tab]"); if (g) { setTab(g.dataset.goTab); $(".pro-tabs").scrollIntoView({ behavior: "smooth", block: "start" }); } });
   }
