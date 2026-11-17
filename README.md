@@ -32,6 +32,8 @@ python3 -m http.server 8000
 
 ## 배포 (GitHub Pages)
 
+배포 전에 `python3 -I tools/bump_version.py`로 CSS·JS 주소의 `?v=` 값을 바꿉니다. GitHub Pages는 파일을 브라우저에 10분쯤 캐시하게 해서, 새 HTML과 옛 JS가 섞이면 페이지가 멈출 수 있기 때문입니다.
+
 저장소의 Settings → Pages에서 Source를 `Deploy from a branch`, 브랜치를 `main` / `/ (root)`로 지정하면
 `https://hyuny0219.github.io/horoscope/` 주소로 공개됩니다.
 

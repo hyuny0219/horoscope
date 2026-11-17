@@ -1,5 +1,6 @@
 (function () {
   const $ = (sel) => document.querySelector(sel);
+  const bind = (sel, ev, fn) => document.querySelector(sel)?.addEventListener(ev, fn); // 요소가 없으면 건너뛴다
   const fmtRange = (i) => {
     const r = SIGN_RANGES[i];
     const a = doyToDate(r.start), b = doyToDate(r.end - 1);
@@ -36,7 +37,7 @@
 
   const wheel = new StarWheel($("#wheel"), { onChange: updatePlate });
   if (document.fonts) document.fonts.ready.then(() => { wheel.dirty = true; });
-  $("#plate-today").addEventListener("click", () => wheel.goToToday());
+  bind("#plate-today", "click", () => wheel.goToToday());
   plate.cta.addEventListener("click", () => {
     selectSign(plateSign);
     $("#reading").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -82,7 +83,7 @@
   PLACES.forEach((p, i) => placeSel.add(new Option(p.ko, i)));
   placeSel.add(new Option("그 밖의 곳 (서울 기준으로 계산)", 0));
 
-  $("#chart-form").addEventListener("submit", (e) => {
+  bind("#chart-form", "submit", (e) => {
     e.preventDefault();
     const v = $("#birth-date").value;
     if (!v) return;
@@ -115,7 +116,7 @@
         ${tile("상승궁, 남이 보는 나", chart.rising, chart.rising == null ? "태어난 시각을 넣으면 계산합니다" : RISING_IN[chart.rising])}
       </div>
       <button type="button" class="link-btn" id="chart-clear">별 지도 지우기</button>`;
-    $("#chart-clear").addEventListener("click", () => { profile = null; localStorage.removeItem(PROFILE_KEY); renderChart(); renderReading(); });
+    bind("#chart-clear", "click", () => { profile = null; localStorage.removeItem(PROFILE_KEY); renderChart(); renderReading(); });
     $("#birth-date").value = `${birth.y}-${String(birth.m).padStart(2, "0")}-${String(birth.d).padStart(2, "0")}`;
     if (Number.isFinite(birth.hh)) $("#birth-time").value = `${String(birth.hh).padStart(2, "0")}:${String(birth.mm).padStart(2, "0")}`;
   }
@@ -215,7 +216,7 @@
   }
 
   /* ----- 궁합 ----- */
-  $("#compat-form").addEventListener("submit", (e) => {
+  bind("#compat-form", "submit", (e) => {
     e.preventDefault();
     const parse = (v) => { const [y, m, d] = v.split("-").map(Number); return birthChart({ y, m, d, lat: 37.57, lon: 126.98, tz: 9 }); };
     const me = $("#compat-me").value, you = $("#compat-you").value;

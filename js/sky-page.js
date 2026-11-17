@@ -1,4 +1,6 @@
 const $ = (s) => document.querySelector(s);
+/* 요소가 없으면 그 조작만 건너뛴다 (예전 HTML이 캐시에 남아 있어도 페이지 전체가 멈추지 않게) */
+const on = (sel, ev, fn) => document.querySelector(sel)?.addEventListener(ev, fn);
 const STORE_KEY = "byeoljaripan.discovered";
 const TOTAL = CONSTELLATIONS.length;
 
@@ -53,7 +55,7 @@ const callbacks = {
 const dome = new SkyView($("#dome"), callbacks);
 let sky = null;
 try {
-  const { Sky3D } = await import("./sky3d.js");
+  const { Sky3D } = await import("./sky3d.js?v=202611172159");
   sky = new Sky3D($("#stage-3d"), callbacks);
   window.sky3d = sky; // 콘솔에서 살펴보기용
 } catch (err) {
@@ -244,25 +246,25 @@ function setView(kind) {
   if (shared.selected) showDetail(CONST_BY_ID[shared.selected], true);
 }
 document.querySelectorAll(".view-tab").forEach((t) => t.addEventListener("click", () => setView(t.dataset.view)));
-$("#detail-3d").addEventListener("click", () => setView(viewKind === "space" ? "look" : "space"));
+on("#detail-3d", "click", () => setView(viewKind === "space" ? "look" : "space"));
 
-$("#compass").addEventListener("click", (e) => {
+on("#compass", "click", (e) => {
   const b = e.target.closest("button");
   if (!b || !sky) return;
   if (b.dataset.zenith) sky.turnTo(sky.yaw, 90); else sky.turnTo(Number(b.dataset.az), 25);
 });
-$("#space-pad").addEventListener("click", (e) => {
+on("#space-pad", "click", (e) => {
   const b = e.target.closest("button[data-orbit]");
   if (b && sky) sky.orbitBy(...b.dataset.orbit.split(",").map(Number));
 });
-$("#space-auto").addEventListener("click", (e) => {
+on("#space-auto", "click", (e) => {
   const on = e.currentTarget.getAttribute("aria-pressed") !== "true";
   e.currentTarget.setAttribute("aria-pressed", on);
   sky?.setAutoRotate(on);
 });
-$("#space-reset").addEventListener("click", () => sky?.resetSpaceView());
-$("#zoom-in").addEventListener("click", () => active().setZoom(active().zoom * 1.4));
-$("#zoom-out").addEventListener("click", () => active().setZoom(active().zoom / 1.4));
+on("#space-reset", "click", () => sky?.resetSpaceView());
+on("#zoom-in", "click", () => active().setZoom(active().zoom * 1.4));
+on("#zoom-out", "click", () => active().setZoom(active().zoom / 1.4));
 
 /* ---------- 입력 ---------- */
 const sel = $("#obs-place");
@@ -284,7 +286,7 @@ function useMyLocation() {
   });
 }
 
-$("#here-now").addEventListener("click", async () => {
+on("#here-now", "click", async () => {
   const ok = await useMyLocation();
   const daytime = setNow({ quiet: true });
   setView("look");
@@ -295,22 +297,22 @@ $("#here-now").addEventListener("click", async () => {
   if (top[0] && sky) sky.turnTo(top[0].center.az, Math.min(70, top[0].center.alt));
 });
 
-$("#obs-date").addEventListener("change", (e) => {
+on("#obs-date", "change", (e) => {
   if (!e.target.value) return;
   const [y, m, d] = e.target.value.split("-").map(Number);
   evening = { y, m, d }; update();
 });
-$("#obs-time").addEventListener("input", (e) => { minutes = Number(e.target.value); update(); });
-$("#obs-now").addEventListener("click", () => setNow());
-$("#obs-cond").addEventListener("change", (e) => { shared.skyCondition = e.target.value; syncViews(); });
-$("#opt-lines").addEventListener("change", (e) => { shared.showLines = e.target.checked; syncViews(); });
-$("#opt-names").addEventListener("change", (e) => { shared.showNames = e.target.checked; syncViews(); });
-$("#obs-gain").addEventListener("input", (e) => {
+on("#obs-time", "input", (e) => { minutes = Number(e.target.value); update(); });
+on("#obs-now", "click", () => setNow());
+on("#obs-cond", "change", (e) => { shared.skyCondition = e.target.value; syncViews(); });
+on("#opt-lines", "change", (e) => { shared.showLines = e.target.checked; syncViews(); });
+on("#opt-names", "change", (e) => { shared.showNames = e.target.checked; syncViews(); });
+on("#obs-gain", "input", (e) => {
   const g = Number(e.target.value);
   sky?.setBrightness(g);
   $("#obs-gain-out").textContent = g < 0.9 ? "실제보다 어둡게" : g < 1.15 ? "실제와 비슷하게" : g < 1.7 ? "보통보다 밝게" : "아주 밝게";
 });
-$("#opt-starnames").addEventListener("change", (e) => { shared.showStarNames = e.target.checked; syncViews(); });
+on("#opt-starnames", "change", (e) => { shared.showStarNames = e.target.checked; syncViews(); });
 
 /* ---------- 하늘 위 투명 팝업 ----------
  * 별이나 별자리, 행성을 누르면 화면을 아래로 내리지 않고 하늘 위에 요약을 띄운다.
@@ -339,7 +341,7 @@ function showPop({ star = false, kicker = "", title, sub = "", facts = [], body 
 function hidePop() {
   $("#sky-pop").hidden = true;
   $("#stage").classList.remove("has-pop");
-  sky?.setFocusShift(0);
+  sky?.setFocusShift?.(0);
 }
 /* 입체 우주에서는 카메라가 대상을 화면 가운데에 두므로, 팝업에 가리지 않게 화면 중심을 올린다 */
 function shiftForPop() {
@@ -352,7 +354,7 @@ function shiftForPop() {
   sky.setFocusShift(covers ? Math.max(0, (st.bottom - r.top) / 2 - 20) : 0);
 }
 addEventListener("resize", shiftForPop);
-$("#sky-pop-close").addEventListener("click", () => {
+on("#sky-pop-close", "click", () => {
   hidePop();
   showStar(null);
   if (sky) { sky.selectedPlanet = null; }
@@ -456,7 +458,7 @@ function showStar(i, quiet) {
   if (s.con) { cb.textContent = `${s.con.ko} 보기`; cb.onclick = () => focusConstellation(s.conId); }
   if (!quiet && matchMedia("(max-width: 1100px)").matches) box.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
-$("#star-close").addEventListener("click", () => showStar(null));
+on("#star-close", "click", () => showStar(null));
 
 /* ---------- 행성 정보 ---------- */
 function showPlanet(id, quiet) {
@@ -507,7 +509,7 @@ const SEARCH = [
 ];
 $("#search-list").replaceChildren(...[...new Set(SEARCH.map((x) => x.label))].map((l) => new Option(l)));
 const norm = (t) => (t || "").toLowerCase().replace(/[\s()]/g, "");
-$("#search").addEventListener("submit", (e) => {
+on("#search", "submit", (e) => {
   e.preventDefault();
   const q = norm($("#search-input").value);
   if (!q) return;
@@ -540,15 +542,15 @@ function setMode(mode) {
   syncViews();
   showDetail(shared.selected ? CONST_BY_ID[shared.selected] : null, true);
 }
-$("#tab-explore").addEventListener("click", () => setMode("explore"));
-$("#tab-discover").addEventListener("click", () => setMode("discover"));
+on("#tab-explore", "click", () => setMode("explore"));
+on("#tab-discover", "click", () => setMode("discover"));
 document.querySelector(".mode-tabs").addEventListener("keydown", (e) => {
   if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
   const next = shared.mode === "explore" ? "discover" : "explore";
   setMode(next); $(`#tab-${next}`).focus();
 });
 
-$("#hint-btn").addEventListener("click", () => {
+on("#hint-btn", "click", () => {
   // 아직 못 찾은 별자리 중 눈에 잘 띄고 높이 뜬 것부터
   const cand = dome.visibleConstellations(20).filter((c) => !discovered.has(c.id)).sort((a, b) => a.rank - b.rank || b.center.alt - a.center.alt);
   if (!cand.length) { $("#hint-text").textContent = "지금 하늘에 뜬 별자리는 모두 찾았습니다. 시각이나 날짜를 바꿔 보세요."; return; }
@@ -558,7 +560,7 @@ $("#hint-btn").addEventListener("click", () => {
   const where = c.center.alt > 70 ? "머리 위" : `${directionName(c.center.az)} ${altitudeWords(c.center.alt)}`;
   $("#hint-text").textContent = `${where}, 점선 원 안을 살펴보세요. ${c.segs.flat().length > 12 ? "별이 많은 큰 별자리입니다." : "별 몇 개로 된 작은 별자리입니다."}`;
 });
-$("#reset-btn").addEventListener("click", () => {
+on("#reset-btn", "click", () => {
   if (!confirm("찾은 별자리 기록을 모두 지울까요?")) return;
   discovered.clear(); saveFound(); shared.selected = null; showDetail(null); renderDiscover(); syncViews();
 });
