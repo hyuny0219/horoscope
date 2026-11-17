@@ -13,11 +13,32 @@ const discovered = (() => { try { return new Set(JSON.parse(localStorage.getItem
 const shared = { mode: "explore", showLines: true, showNames: true, showStarNames: true, selected: null, selectedStar: null, hint: null, skyCondition: "dark" };
 const saveFound = () => localStorage.setItem(STORE_KEY, JSON.stringify([...discovered]));
 
+/* 3D 화면 중 메뉴, 버튼, 설정판에 가리지 않는 영역 (태양·지구 화살표가 이 안에 머문다) */
+function stageSafeArea() {
+  const st = $("#stage").getBoundingClientRect();
+  const m = { l: 18, r: 18, t: 90, b: 70 };
+  const tabs = document.querySelector(".view-tabs").getBoundingClientRect();
+  m.t = Math.max(m.t, tabs.bottom - st.top + 14);
+  let low = st.bottom;
+  for (const el of document.querySelectorAll("#space-pad, .zoom, #compass, #stage-help, #sky-pop")) {
+    if (el.hidden || !el.offsetParent || !el.textContent.trim()) continue;
+    low = Math.min(low, el.getBoundingClientRect().top);
+  }
+  m.b = Math.max(m.b, st.bottom - low + 12);
+  const con = document.querySelector(".console");
+  if (getComputedStyle(con).position === "absolute") m.r = Math.max(m.r, st.right - con.getBoundingClientRect().left + 16);
+  return m;
+}
+
 const callbacks = {
-  onSelect: (c) => { shared.selected = c ? c.id : null; syncViews(); showDetail(c); renderVisible(); },
+  safeArea: stageSafeArea,
+  onSelect: (c) => {
+    shared.selected = c ? c.id : null; syncViews(); showDetail(c, true); renderVisible();
+    if (c && (shared.mode === "explore" || discovered.has(c.id))) popConstellation(c.id); else hidePop();
+  },
   onDiscover: (c) => { saveFound(); toast(`새 별자리를 찾았습니다: ${c.ko}`); renderDiscover(); },
-  onStar: (i) => showStar(i),
-  onPlanet: (p) => showPlanet(p.id),
+  onStar: (i) => { showStar(i, true); popStar(i); },
+  onPlanet: (p) => { showPlanet(p.id, true); popPlanet(p.id); },
   onMiss: () => toast("별자리 선이 지나는 별이 아닙니다. 밝은 별 근처를 눌러 보세요."),
   onHover: (h) => {
     const tip = $("#stage-tip");
@@ -48,6 +69,8 @@ function syncViews() {
 }
 
 /* ---------- 시간 ---------- */
+/* 받침에 맞춰 (으)로: 받침이 없거나 ㄹ이면 '로' */
+const toward = (w) => { const c = w.charCodeAt(w.length - 1), j = (c - 0xac00) % 28; return w + (c >= 0xac00 && c <= 0xd7a3 && j && j !== 8 ? "으로" : "로"); };
 /* 받침에 맞춰 은/는 */
 const topic = (w) => { const c = w.charCodeAt(w.length - 1); return w + (c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? "은" : "는"); };
 const obsTime = () => Date.UTC(evening.y, evening.m - 1, evening.d, 18 - place.tz, 0) + minutes * 60000;
@@ -111,11 +134,12 @@ function renderVisible() {
   if (!vis.length) list.textContent = "이 시각에는 지평선 위로 높이 뜬 별자리가 없습니다.";
 }
 
-function focusConstellation(id) {
+function focusConstellation(id, quiet) {
   shared.selected = id;
   syncViews();
   if (sky && viewKind !== "dome") sky.lookAtConstellation(id);
-  showDetail(CONST_BY_ID[id]);
+  showDetail(CONST_BY_ID[id], quiet);
+  if (quiet) popConstellation(id); else hidePop();
   renderVisible();
 }
 
@@ -195,12 +219,14 @@ function toast(msg) {
 const HELP = {
   look: "끌어서 고개를 돌리고, 휠이나 두 손가락으로 확대합니다. 별을 누르면 별자리를 알려 줍니다.",
   dome: "가운데가 머리 위, 둘레가 지평선입니다. 하늘을 올려다본 방향이라 동쪽이 왼쪽에 있습니다.",
-  space: "끌어서 돌리고, 오른쪽 버튼이나 두 손가락으로 끌어 옮기고, 휠로 가리키는 곳에 다가갑니다. 별을 두 번 누르면 그 별 주위를 돕니다.",
+  space: "끌어서 돌리고, 휠이나 두 손가락으로 다가갑니다. 행성이나 태양을 누르면 그 앞까지 날아가고, 별을 두 번 누르면 그 별 주위를 돕니다. 화면 가장자리의 태양·지구 표시를 누르면 집으로 돌아옵니다.",
 };
 function setView(kind) {
   if (!sky && kind !== "dome") { toast("이 브라우저에서는 3D를 쓸 수 없어 전천 지도로 보여 드립니다."); kind = "dome"; }
   const prev = viewKind;
   viewKind = kind;
+  if (prev !== kind) hidePop();
+  else shiftForPop();
   document.querySelectorAll(".view-tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.view === kind));
   $("#stage-3d").hidden = kind === "dome";
   $("#stage-dome").hidden = kind !== "dome";
@@ -235,7 +261,7 @@ $("#space-auto").addEventListener("click", (e) => {
   sky?.setAutoRotate(on);
 });
 $("#space-reset").addEventListener("click", () => sky?.resetSpaceView());
-$("#space-solar").addEventListener("click", () => { sky?.goSolarSystem(); toast("태양계로 갑니다. 행성을 두 번 누르면 그 행성 가까이 날아갑니다."); });
+$("#space-solar").addEventListener("click", () => { sky?.goSolarSystem(); toast("태양계로 갑니다. 행성을 누르면 그 행성 앞까지 날아갑니다. 행성 크기는 보기 좋게 키웠습니다."); });
 $("#zoom-in").addEventListener("click", () => active().setZoom(active().zoom * 1.4));
 $("#zoom-out").addEventListener("click", () => active().setZoom(active().zoom / 1.4));
 
@@ -287,6 +313,104 @@ $("#obs-gain").addEventListener("input", (e) => {
 });
 $("#opt-starnames").addEventListener("change", (e) => { shared.showStarNames = e.target.checked; syncViews(); });
 
+/* ---------- 하늘 위 투명 팝업 ----------
+ * 별이나 별자리, 행성을 누르면 화면을 아래로 내리지 않고 하늘 위에 요약을 띄운다.
+ * 전체 설명은 "자세히"를 눌렀을 때만 아래 설명판으로 간다. */
+function showPop({ star = false, kicker = "", title, sub = "", facts = [], body = "", actions = [] }) {
+  const pop = $("#sky-pop");
+  pop.classList.toggle("is-star", star);
+  $("#sky-pop-kicker").textContent = kicker;
+  $("#sky-pop-title").textContent = title;
+  $("#sky-pop-sub").textContent = sub;
+  $("#sky-pop-facts").replaceChildren(...facts.map(([k, v]) => {
+    const li = document.createElement("li"), b = document.createElement("b");
+    b.textContent = k; li.append(b, v); return li;
+  }));
+  $("#sky-pop-body").textContent = body;
+  $("#sky-pop-actions").replaceChildren(...actions.map(({ label, onClick, primary }) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = `btn ${primary ? "btn-ink" : "btn-line"}`;
+    btn.textContent = label; btn.addEventListener("click", onClick);
+    return btn;
+  }));
+  pop.hidden = false;
+  $("#stage").classList.add("has-pop");
+  shiftForPop();
+}
+function hidePop() {
+  $("#sky-pop").hidden = true;
+  $("#stage").classList.remove("has-pop");
+  sky?.setFocusShift(0);
+}
+/* 입체 우주에서는 카메라가 대상을 화면 가운데에 두므로, 팝업에 가리지 않게 화면 중심을 올린다 */
+function shiftForPop() {
+  if (!sky) return;
+  const pop = $("#sky-pop"), st = $("#stage").getBoundingClientRect();
+  if (pop.hidden || viewKind !== "space") { sky.setFocusShift(0); return; }
+  const r = pop.getBoundingClientRect();
+  // 팝업이 화면 가로 대부분을 덮을 때(모바일)만: 위쪽 남은 영역의 가운데로
+  const covers = r.width > st.width * 0.6;
+  sky.setFocusShift(covers ? Math.max(0, (st.bottom - r.top) / 2 - 20) : 0);
+}
+addEventListener("resize", shiftForPop);
+$("#sky-pop-close").addEventListener("click", () => {
+  hidePop();
+  showStar(null);
+  if (sky) { sky.selectedPlanet = null; }
+});
+const moreAction = (sel) => ({ label: "자세히", onClick: () => $(sel).scrollIntoView({ block: "start", behavior: "smooth" }) });
+const whereText = (aa) => aa.alt > 0 ? `${aa.alt > 70 ? "머리 위" : `${directionName(aa.az)} ${altitudeWords(aa.alt)}`}, 고도 ${Math.round(aa.alt)}°` : "지금은 지평선 아래";
+
+function popStar(i) {
+  const s = starInfo(i), aa = starAltAz(i);
+  const actions = [];
+  if (s.con) actions.push({ label: `${s.con.ko} 보기`, primary: true, onClick: () => focusConstellation(s.conId, true) });
+  actions.push(moreAction("#star-detail"));
+  showPop({
+    star: true,
+    kicker: [s.con ? `${s.con.ko}의 별` : null, viewKind === "space" ? null : whereText(aa)].filter(Boolean).join(" · "),
+    title: s.name,
+    sub: [s.trad && `옛 이름 ${s.trad}`, s.en].filter(Boolean).join(", "),
+    facts: [["밝기", `${s.mag.toFixed(1)}등급`], ["거리", s.ly ? `${s.ly.toLocaleString("ko-KR")}광년` : "모름"], ["색", s.colorWord]],
+    body: s.story || (s.lightYear ? `지금 보이는 이 별빛은 ${s.lightYear}에 별을 떠났습니다.` : ""),
+    actions,
+  });
+}
+
+function popConstellation(id) {
+  const c = CONST_BY_ID[id], k = dome.consts.find((q) => q.id === id);
+  if (!c || !k) return;
+  const sign = ZODIAC_LINK[id] && SIGNS.find((x) => x.id === ZODIAC_LINK[id]);
+  const actions = [];
+  if (sky) actions.push({ label: viewKind === "space" ? "지구로 돌아가기" : "입체로 보기", primary: true, onClick: () => setView(viewKind === "space" ? "look" : "space") });
+  if (sign) actions.push({ label: `${sign.ko} 운세`, onClick: () => { location.href = `zodiac.html?sign=${sign.id}#reading`; } });
+  actions.push(moreAction("#detail"));
+  showPop({
+    kicker: viewKind === "space" ? "별자리" : whereText(k.center),
+    title: c.ko, sub: c.la,
+    body: CONST_GUIDE[id] || (sign ? sign.myth : ""),
+    actions,
+  });
+}
+
+function popPlanet(id) {
+  const p = (sky?.planets || planetPositions(obsTime())).find((q) => q.id === id);
+  if (!p) return;
+  const lm = p.delta ? (p.delta * 499.005) / 60 : null;
+  const facts = [["태양에서", `${p.r.toFixed(2)}AU`]];
+  if (p.delta) facts.push(["지구에서", `빛으로 ${lm < 60 ? `${Math.round(lm)}분` : `${(lm / 60).toFixed(1)}시간`}`], ["밝기", `${p.mag.toFixed(1)}등급`]);
+  const actions = [];
+  if (sky && viewKind !== "space") actions.push({ label: "태양계에서 보기", primary: true, onClick: () => { hidePop(); setView("space"); setTimeout(() => sky.orbitPlanet(id), 2500); } });
+  actions.push(moreAction("#star-detail"));
+  const aa = p.ra !== undefined ? toAltAz(p.ra, p.dec, place.lat, localSiderealDeg(obsTime(), place.lon)) : null;
+  showPop({
+    star: true,
+    kicker: p.id === "earth" ? "우리가 사는 행성" : viewKind === "space" ? `${toward(p.ko)} 가는 중` : whereText(aa),
+    title: p.ko, sub: `${p.kind}, 공전 ${p.period}`,
+    facts, body: p.note, actions,
+  });
+}
+
 /* ---------- 별 정보 ---------- */
 function starAltAz(i) {
   const [ra, dec] = SKY_STARS[i];
@@ -305,7 +429,7 @@ function starBestMonth(i) {
   return best;
 }
 
-function showStar(i) {
+function showStar(i, quiet) {
   const box = $("#star-detail");
   if (i == null) { box.hidden = true; shared.selectedStar = null; if (sky) sky.selectedStar = null; return; }
   shared.selectedStar = i;
@@ -331,12 +455,12 @@ function showStar(i) {
   const cb = $("#star-const");
   cb.hidden = !s.con;
   if (s.con) { cb.textContent = `${s.con.ko} 보기`; cb.onclick = () => focusConstellation(s.conId); }
-  if (matchMedia("(max-width: 1100px)").matches) box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  if (!quiet && matchMedia("(max-width: 1100px)").matches) box.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 $("#star-close").addEventListener("click", () => showStar(null));
 
 /* ---------- 행성 정보 ---------- */
-function showPlanet(id) {
+function showPlanet(id, quiet) {
   const p = (sky?.planets || planetPositions(obsTime())).find((q) => q.id === id);
   if (!p) return;
   if (sky) { sky.selectedPlanet = id; sky.selectedStar = null; }
@@ -364,7 +488,7 @@ function showPlanet(id) {
   cb.hidden = !sky;
   cb.textContent = viewKind === "space" ? `${p.ko} 가까이 가기` : "태양계에서 보기";
   cb.onclick = () => { if (viewKind !== "space") setView("space"); setTimeout(() => sky.orbitPlanet(id), viewKind === "space" ? 0 : 2500); };
-  if (matchMedia("(max-width: 1100px)").matches) box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  if (!quiet && matchMedia("(max-width: 1100px)").matches) box.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 /* 적경·적위 → 황경 (행성이 어느 황도 별자리 방향에 있는지) */
