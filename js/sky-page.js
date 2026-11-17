@@ -442,11 +442,10 @@ $("#reset-btn").addEventListener("click", () => {
 
 /* ---------- 시작 ---------- */
 setNow({ quiet: true });
-setView(sky ? "look" : "dome");
+// 첫 화면은 입체 우주. 링크로 별자리를 골라 왔으면 그 별자리를 중심으로 연다
 const q = new URLSearchParams(location.search).get("c");
-if (q && CONST_BY_ID[q]) focusConstellation(q);
-else {
-  const top = dome.visibleConstellations(20)[0];
-  if (top && sky) { sky.yaw = top.center.az; sky.pitch = Math.min(60, Math.max(20, top.center.alt - 10)); }
-}
+const top = dome.visibleConstellations(20)[0];
+if (top && sky) { sky.yaw = top.center.az; sky.pitch = Math.min(60, Math.max(20, top.center.alt - 10)); }
+if (q && CONST_BY_ID[q]) { shared.selected = q; syncViews(); showDetail(CONST_BY_ID[q], true); renderVisible(); }
+setView(sky ? "space" : "dome");
 if (document.fonts) document.fonts.ready.then(() => dome.draw());
