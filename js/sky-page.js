@@ -55,7 +55,7 @@ const callbacks = {
 const dome = new SkyView($("#dome"), callbacks);
 let sky = null;
 try {
-  const { Sky3D } = await import("./sky3d.js?v=202611180149");
+  const { Sky3D } = await import("./sky3d.js?v=202611180203");
   sky = new Sky3D($("#stage-3d"), callbacks);
   window.sky3d = sky; // 콘솔에서 살펴보기용
 } catch (err) {
@@ -585,7 +585,7 @@ if (q && CONST_BY_ID[q]) { shared.selected = q; syncViews(); showDetail(CONST_BY
 const P = new URLSearchParams(location.search);
 const linkT = Number(P.get("t")), linkP = P.get("p"), linkS = P.has("s") ? Number(P.get("s")) : null;
 if (P.has("lat") && P.has("lon")) {
-  const custom = { id: "link", ko: P.get("place") || "지정한 곳", lat: Number(P.get("lat")), lon: Number(P.get("lon")), tz: 9 };
+  const custom = { id: "link", ko: P.get("place") || "지정한 곳", lat: Number(P.get("lat")), lon: Number(P.get("lon")), tz: P.has("tz") ? Number(P.get("tz")) : 9 };
   places.push(custom); sel.add(new Option(custom.ko, places.length - 1)); sel.value = places.length - 1; place = custom;
 }
 if (Number.isFinite(linkT) && linkT > 0) {
@@ -617,8 +617,48 @@ if (sky && linked) {
     const pl = sky.planets.find((x) => x.id === linkP);
     if (pl && pl.alt > 0) { sky.turnTo(pl.az, Math.max(5, Math.min(85, pl.alt))); showPlanet(linkP, true); popPlanet(linkP); toast(`${when}, ${place.ko}의 하늘: ${topic(pl.ko)} ${directionName(pl.az)} ${altitudeWords(pl.alt)}에 있습니다.`); }
     else if (pl) { setView("space"); setTimeout(() => sky.orbitPlanet(linkP), 600); toast(`${when}: ${topic(pl.ko)} 지평선 아래라 태양계에서 보여 드립니다.`); }
-  } else {
+  } else if (!P.has("birth")) {
     toast(`${when}, ${place.ko}의 실제 하늘입니다.${dome.sun.alt > 0 ? " 낮이라 별은 흐리게만 보입니다." : ""}`);
   }
+}
+/* 첫 화면 '태어난 날의 하늘로'에서 왔을 때: 그 순간의 하늘 + 생일 카드 */
+if (P.has("birth") && Number.isFinite(linkT)) {
+  const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const [by, bm, bd] = (P.get("b") || "").split("-").map(Number);
+  const md = bm * 100 + bd;
+  let si = 11;
+  SIGNS.forEach((x, i) => { const st = x.start[0] * 100 + x.start[1]; const nx = SIGNS[(i + 1) % 12].start; const en = nx[0] * 100 + nx[1]; if (st <= en ? md >= st && md < en : md >= st || md < en) si = i; });
+  const sign = SIGNS[si];
+  // 그 순간 머리 위에 가장 가까운 밝은 별
+  let top = null;
+  for (const [, i] of SKY_NAMED) { if (SKY_STARS[i][2] > 2.6) continue; const aa = starAltAz(i); if (!top || aa.alt > top.alt) top = { i, alt: aa.alt, az: aa.az }; }
+  const signC = CONST_BY_ID[sign.iau], signK = dome.consts.find((q) => q.id === sign.iau);
+  const signUp = signK && signK.center.alt > 0;
+  const day = dome.sun.alt > 0;
+  const unk = P.has("unk");
+  const card = document.createElement("section");
+  card.className = "birth-card"; card.setAttribute("aria-label", "태어난 날의 하늘");
+  const zq = new URLSearchParams({ b: P.get("b") || "", cc: P.get("cc") || "KR", city: P.get("city") || "" });
+  if (P.get("tm")) zq.set("tm", P.get("tm")); if (P.get("g")) zq.set("g", P.get("g"));
+  card.innerHTML = `<button type="button" class="bc-x" aria-label="닫기">×</button>
+    <p class="bc-k">당신이 태어난 순간의 하늘</p>
+    <p class="bc-t">${by}년 ${bm}월 ${bd}일${unk ? " 밤" : ` ${P.get("tm")}`} · ${esc(place.ko)}</p>
+    <p>${day ? "해가 떠 있던 낮이라 별은 햇빛에 가려 있었지만, 하늘에는 지금처럼 별들이 그 자리에 있었어요." : "별이 반짝이던 밤이었어요."}${unk ? " (태어난 시각을 몰라 그날 밤 9시 하늘로 보여 드려요.)" : ""}</p>
+    <p>태양은 <b>${sign.glyph} ${sign.ko}</b>에 머물고 있었어요. ${signUp ? "그 별자리는 지평선 위에 떠 있었어요." : "그 별자리는 태양과 함께 지평선 아래에 있었어요."}</p>
+    ${top && top.alt > 15 ? `<p>그 순간 머리 위에 가장 높이 떠 있던 밝은 별은 <b>${esc(starName(top.i) || "")}</b>예요. 당신의 탄생을 지켜본 별이에요.</p>` : ""}
+    <div class="bc-actions">
+      ${top && top.alt > 15 ? `<button type="button" class="btn btn-line" data-bc="star">그 별 보기</button>` : ""}
+      ${signC ? `<button type="button" class="btn btn-line" data-bc="sign">${sign.ko} 찾기</button>` : ""}
+      <a class="btn btn-star" href="zodiac.html?${zq}#reading">이 하늘로 본 내 운세</a>
+    </div>`;
+  document.body.append(card);
+  card.addEventListener("click", (e) => {
+    if (e.target.closest(".bc-x")) card.remove();
+    const k = e.target.closest("[data-bc]")?.dataset.bc;
+    if (k === "star") { setView("look"); sky?.lookAtStar(top.i); showStar(top.i, true); popStar(top.i); }
+    if (k === "sign") { if (signUp) { setView("look"); focusConstellation(sign.iau, true); } else { setView("space"); setTimeout(() => focusConstellation(sign.iau, true), 500); } }
+  });
+  if (sky && top && top.alt > 15) setTimeout(() => sky.lookAtStar(top.i), 300);
+  history.replaceState(null, "", location.pathname + "?t=" + linkT + "&lat=" + P.get("lat") + "&lon=" + P.get("lon") + "&tz=" + (P.get("tz") || 9) + "&place=" + encodeURIComponent(P.get("place") || "") + "&view=look");
 }
 if (document.fonts) document.fonts.ready.then(() => dome.draw());

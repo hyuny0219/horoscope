@@ -275,6 +275,17 @@
 
   renderChart();
   renderReading();
+  /* 첫 화면 '태어난 날의 하늘'에서 넘어온 생일로 바로 시작 (주소에서는 지운다) */
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (!q.get("b")) return;
+    $("#start-date").value = q.get("b");
+    $("#start-time").value = q.get("tm") || "";
+    $("#start-gender").value = q.get("g") || "";
+    startPick.set({ cc: q.get("cc") || "KR", city: q.get("city") || "" });
+    history.replaceState(null, "", location.pathname + location.hash);
+    $("#start-form").requestSubmit();
+  })();
   // 저장한 별 지도나 링크로 고른 별자리가 있으면 원판도 그 별자리로 돌린다
   if (current !== signIndexForDoy(wheel.todayDoy)) wheel.goToSign(current);
   ready = true;

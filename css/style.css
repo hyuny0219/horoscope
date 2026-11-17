@@ -1092,3 +1092,63 @@ p > .ev-ic { position: static; display: inline-block; width: auto; margin-right:
 .pr-todo { margin-top: 1rem; }
 .pr-lucky { margin-top: .8rem; }
 .pr-sky-h { margin-top: 1.6rem; padding-top: 1rem; border-top: 1px solid var(--hair); }
+
+/* ===== 첫 화면 인트로 ===== */
+.intro { position: fixed; inset: 0; z-index: 100; background: #02030A; color: #F3EEDF; overflow: hidden; transition: opacity .7s ease, transform .9s cubic-bezier(.2,.7,.2,1); touch-action: none; }
+.intro.out { opacity: 0; transform: scale(1.08); pointer-events: none; }
+.intro.flash::after { content: ""; position: absolute; inset: 0; background: #fffaf0; animation: introFlash .35s ease-in forwards; }
+@keyframes introFlash { from { opacity: 0; } to { opacity: 1; } }
+body.intro-on { overflow: hidden; }
+.intro-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.intro-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding: 2rem max(1.25rem, env(safe-area-inset-left)) max(2.2rem, env(safe-area-inset-bottom)); pointer-events: none; text-align: center; }
+.intro-ui > * { pointer-events: auto; }
+.intro-ui .intro-kicker, .intro-ui .intro-title, .intro-ui .intro-menu, .intro-ui .intro-tip, .intro-ui .intro-birth { opacity: 0; transform: translateY(18px); transition: opacity 1s ease, transform 1.2s cubic-bezier(.2,.7,.2,1); }
+.intro-ui.on .intro-kicker { opacity: 1; transform: none; transition-delay: .15s; }
+.intro-ui.on .intro-title { opacity: 1; transform: none; transition-delay: .3s; }
+.intro-ui.on .intro-menu, .intro-ui.on .intro-birth { opacity: 1; transform: none; transition-delay: .6s; }
+.intro-ui.on .intro-tip { opacity: .55; transform: none; transition-delay: 1.4s; }
+.intro-kicker { margin: 0; letter-spacing: .35em; font-size: .78rem; color: rgba(247,222,154,.85); text-transform: uppercase; }
+.intro-title { margin: .2rem 0 1.6rem; font-family: "Gowun Batang", serif; font-weight: 400; font-size: clamp(3.4rem, 13vw, 7.5rem); line-height: 1; letter-spacing: .08em;
+  background: linear-gradient(180deg, #FFF8E6 10%, #F2C46B 60%, #B9852F 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 24px rgba(242,196,107,.35)) drop-shadow(0 0 70px rgba(120,140,255,.25)); }
+.intro-menu { display: grid; gap: .7rem; width: min(30rem, 100%); }
+.intro-btn { display: flex; align-items: center; gap: .9rem; text-align: left; font: inherit; color: inherit; text-decoration: none; cursor: pointer;
+  padding: .9rem 1.1rem; border-radius: 16px; border: 1px solid rgba(247,222,154,.22);
+  background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08); transition: transform .25s, border-color .25s, background .25s, box-shadow .25s; }
+.intro-btn:hover, .intro-btn:focus-visible { transform: translateY(-2px); border-color: rgba(247,222,154,.6); background: linear-gradient(135deg, rgba(247,222,154,.14), rgba(255,255,255,.03)); box-shadow: 0 14px 40px rgba(0,0,0,.4), 0 0 30px rgba(242,196,107,.18); outline: none; }
+.intro-btn b { display: block; font-size: 1.05rem; font-weight: 600; }
+.intro-btn small { display: block; font-size: .8rem; color: rgba(243,238,223,.62); margin-top: .1rem; }
+.ib-ic { flex: none; width: 2.4rem; height: 2.4rem; display: grid; place-items: center; border-radius: 50%; font-size: 1.15rem; color: #F2C46B; background: radial-gradient(circle, rgba(242,196,107,.25), rgba(242,196,107,.04) 70%); border: 1px solid rgba(242,196,107,.3); }
+.intro-btn.is-hot { border-color: rgba(242,196,107,.5); background: linear-gradient(135deg, rgba(242,196,107,.18), rgba(120,110,255,.08)); position: relative; overflow: hidden; }
+.intro-btn.is-hot::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,240,200,.18) 50%, transparent 70%); transform: translateX(-100%); animation: introShine 3.6s 2s ease-in-out infinite; }
+@keyframes introShine { 0%, 60% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.intro-tip { margin: 1.1rem 0 0; font-size: .78rem; letter-spacing: .1em; }
+.intro-birth { width: min(30rem, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: .7rem .9rem; text-align: left; padding: 1.1rem; border-radius: 18px; border: 1px solid rgba(247,222,154,.3); background: rgba(10,12,28,.6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.intro-birth[hidden], .intro-menu[hidden] { display: none; }
+.intro-birth label { display: grid; gap: .3rem; font-size: .8rem; color: rgba(243,238,223,.7); min-width: 0; }
+.intro-birth label:first-of-type { grid-column: 1 / -1; }
+.intro-birth input, .intro-birth select { font: inherit; font-size: 1rem; color: #F3EEDF; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: .6rem .7rem; min-width: 0; width: 100%; color-scheme: dark; }
+.intro-birth .opt { color: #F2C46B; font-size: .72rem; }
+.ib-title { grid-column: 1 / -1; margin: 0 0 .2rem; font-family: "Gowun Batang", serif; font-size: 1.2rem; color: #F7DE9A; }
+.ib-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: .6rem; margin-top: .3rem; }
+.intro .link-btn { color: rgba(243,238,223,.75); }
+.intro-skip { position: absolute; right: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); font: inherit; font-size: .82rem; letter-spacing: .1em; color: rgba(243,238,223,.7); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: .45rem 1rem; cursor: pointer; }
+.intro-skip[hidden] { display: none; }
+.intro-rewind { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+.intro-rewind[hidden] { display: none; }
+.ir-k { margin: 0; letter-spacing: .3em; font-size: .8rem; color: rgba(247,222,154,.8); animation: introPulse 1.2s ease-in-out infinite alternate; }
+.ir-date { margin: .5rem 0 0; font-family: "Gowun Batang", serif; font-size: clamp(2rem, 8vw, 4rem); color: #FFF4D6; text-shadow: 0 0 30px rgba(242,196,107,.6); font-variant-numeric: tabular-nums; }
+@keyframes introPulse { from { opacity: .4; } to { opacity: 1; } }
+@media (min-width: 900px) and (min-height: 640px) { .intro-ui { justify-content: center; } }
+
+/* 태어난 날의 하늘 카드 */
+.birth-card { position: fixed; z-index: 30; left: 50%; bottom: max(1rem, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(28rem, calc(100vw - 1.5rem)); padding: 1rem 1.15rem; border-radius: 18px;
+  border: 1px solid rgba(247,222,154,.4); background: rgba(10,12,28,.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #F3EEDF; box-shadow: 0 20px 60px rgba(0,0,0,.5); animation: birthIn .9s .4s both cubic-bezier(.2,.7,.2,1); }
+@keyframes birthIn { from { opacity: 0; transform: translate(-50%, 24px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.birth-card .bc-k { margin: 0; font-size: .75rem; letter-spacing: .25em; color: #F2C46B; }
+.birth-card .bc-t { margin: .2rem 0 .5rem; font-family: "Gowun Batang", serif; font-size: 1.25rem; }
+.birth-card p { margin: .3rem 0; font-size: .9rem; line-height: 1.65; }
+.birth-card b { color: #F7DE9A; }
+.birth-card .bc-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
+.birth-card .bc-x { position: absolute; top: .35rem; right: .5rem; background: none; border: 0; color: inherit; font-size: 1.4rem; opacity: .7; cursor: pointer; padding: .3rem .5rem; }
