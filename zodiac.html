@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611180032">
+  <link rel="stylesheet" href="css/style.css?v=202611180035">
 </head>
 <body>
   <canvas id="backdrop" aria-hidden="true"></canvas>
@@ -30,11 +30,12 @@
         <form class="start-form" id="start-form">
           <label class="sf-date">생년월일 <input type="date" id="start-date" required></label>
           <label>태어난 시각 <span class="opt">몰라도 괜찮아요</span><input type="time" id="start-time"></label>
-          <label>태어난 곳 <select id="start-place"></select></label>
+          <label>태어난 나라 <select id="start-country"></select></label>
+          <label>태어난 도시 <select id="start-city"></select></label>
           <button type="submit" class="btn btn-star">내 운세 보기</button>
         </form>
         <p class="hero-skip"><button type="button" class="link-btn" id="skip-start">생일 없이 별자리만 볼게요</button></p>
-        <p class="show-meta">입력한 생일은 이 브라우저에만 저장되고 어디로도 보내지 않습니다.</p>
+        <p class="show-meta">입력한 생일은 이 브라우저에만 저장되고 어디로도 보내지 않습니다. 성별은 필요 없습니다. 출생 차트는 태어난 날짜·시각·장소의 하늘만으로 계산합니다.</p>
       </div>
       <div class="hero-me" id="hero-me" hidden></div>
     </section>
@@ -117,7 +118,8 @@
           <form class="chart-form" id="chart-form">
             <label>생년월일 <input type="date" id="birth-date" required></label>
             <label>태어난 시각 <input type="time" id="birth-time"></label>
-            <label>태어난 곳 <select id="birth-place"></select></label>
+            <label>태어난 나라 <select id="birth-country"></select></label>
+            <label>태어난 도시 <select id="birth-city"></select></label>
             <button type="submit" class="btn btn-ink">별 지도 만들기</button>
           </form>
           <div class="chart-result" id="chart-result" hidden></div>
@@ -130,8 +132,12 @@
           <form class="chart-form" id="compat-form">
             <label>나의 생일 <input type="date" id="compat-me" required></label>
             <label>나의 태어난 시각 <input type="time" id="compat-me-time"></label>
+            <label>나의 태어난 나라 <select id="compat-me-country"></select></label>
+            <label>나의 태어난 도시 <select id="compat-me-city"></select></label>
             <label>상대의 생일 <input type="date" id="compat-you" required></label>
             <label>상대의 태어난 시각 <input type="time" id="compat-you-time"></label>
+            <label>상대의 태어난 나라 <select id="compat-you-country"></select></label>
+            <label>상대의 태어난 도시 <select id="compat-you-city"></select></label>
             <button type="submit" class="btn btn-ink">궁합 보기</button>
           </form>
           <div class="compat-out" id="compat-out" hidden aria-live="polite"></div>
@@ -144,21 +150,23 @@
     <p>운세는 재미로 즐겨 주세요. 행성 위치는 NASA JPL 궤도 요소와 Meeus의 계산식으로 구했고(수 분각 정밀도), 해설은 서양 점성술의 열대 황도와 홀사인 하우스를 따릅니다.</p>
   </footer>
 
-  <script src="js/data.js?v=202611180032"></script>
-  <script src="js/sky-data.js?v=202611180032"></script>
-  <script src="js/sky-ko.js?v=202611180032"></script>
-  <script src="js/astro.js?v=202611180032"></script>
-  <script src="js/milkyway-data.js?v=202611180032"></script>
-  <script src="js/milkyway.js?v=202611180032"></script>
-  <script src="js/wheel.js?v=202611180032"></script>
-  <script src="js/astrology.js?v=202611180032"></script>
-  <script src="js/fortune.js?v=202611180032"></script>
-  <script src="js/ephemeris.js?v=202611180032"></script>
-  <script src="js/astro-text.js?v=202611180032"></script>
-  <script src="js/charts.js?v=202611180032"></script>
-  <script src="js/share.js?v=202611180032"></script>
-  <script src="js/pro.js?v=202611180032"></script>
-  <script src="js/main.js?v=202611180032"></script>
-  <script src="js/backdrop.js?v=202611180032"></script>
+  <script src="js/data.js?v=202611180035"></script>
+  <script src="js/sky-data.js?v=202611180035"></script>
+  <script src="js/sky-ko.js?v=202611180035"></script>
+  <script src="js/astro.js?v=202611180035"></script>
+  <script src="js/milkyway-data.js?v=202611180035"></script>
+  <script src="js/milkyway.js?v=202611180035"></script>
+  <script src="js/wheel.js?v=202611180035"></script>
+  <script src="js/astrology.js?v=202611180035"></script>
+  <script src="js/fortune.js?v=202611180035"></script>
+  <script src="js/places-data.js?v=202611180035"></script>
+  <script src="js/places.js?v=202611180035"></script>
+  <script src="js/ephemeris.js?v=202611180035"></script>
+  <script src="js/astro-text.js?v=202611180035"></script>
+  <script src="js/charts.js?v=202611180035"></script>
+  <script src="js/share.js?v=202611180035"></script>
+  <script src="js/pro.js?v=202611180035"></script>
+  <script src="js/main.js?v=202611180035"></script>
+  <script src="js/backdrop.js?v=202611180035"></script>
 </body>
 </html>

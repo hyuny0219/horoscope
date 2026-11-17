@@ -71,19 +71,19 @@
   }
 
   /* ----- 내 별 지도 ----- */
-  const placeSel = $("#birth-place");
-  PLACES.forEach((p, i) => placeSel.add(new Option(p.ko, i)));
-  placeSel.add(new Option("그 밖의 곳 (서울 기준으로 계산)", 0));
+  // 출생지: 나라 → 도시 (전세계)
+  const birthPick = WorldPlace.bind($("#birth-country"), $("#birth-city"), profile?.birth?.cc ? { cc: profile.birth.cc, city: profile.birth.city } : undefined);
+  const startPick = WorldPlace.bind($("#start-country"), $("#start-city"), profile?.birth?.cc ? { cc: profile.birth.cc, city: profile.birth.city } : undefined);
+  const compatMePick = WorldPlace.bind($("#compat-me-country"), $("#compat-me-city"));
+  const compatYouPick = WorldPlace.bind($("#compat-you-country"), $("#compat-you-city"));
 
   bind("#chart-form", "submit", (e) => {
     e.preventDefault();
     const v = $("#birth-date").value;
     if (!v) return;
-    const [y, m, d] = v.split("-").map(Number);
-    const t = $("#birth-time").value;
-    const pl = PLACES[Number(placeSel.value)] || PLACES[0];
-    const birth = { y, m, d, lat: pl.lat, lon: pl.lon, tz: 9, place: pl.ko };
-    if (t) { const [hh, mm] = t.split(":").map(Number); birth.hh = hh; birth.mm = mm; }
+    const pl = birthPick.get();
+    const birth = WorldPlace.toBirth(v, $("#birth-time").value, pl);
+    birth.city = pl.city;
     profile = { birth, chart: birthChart(birth) };
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     current = profile.chart.sun;
@@ -99,6 +99,9 @@
     const { birth } = profile;
     $("#birth-date").value = `${birth.y}-${String(birth.m).padStart(2, "0")}-${String(birth.d).padStart(2, "0")}`;
     if (Number.isFinite(birth.hh)) $("#birth-time").value = `${String(birth.hh).padStart(2, "0")}:${String(birth.mm).padStart(2, "0")}`;
+    // 예전에 저장한 별 지도(한국 도시 이름만 있음)도 나라·도시로 맞춘다
+    const where = { cc: birth.cc || "KR", city: birth.city || birth.place };
+    birthPick.set(where); startPick.set(where);
   }
   document.addEventListener("click", (e) => {
     if (!e.target.closest("#chart-clear")) return;
@@ -230,13 +233,7 @@
     e.preventDefault();
     const me = $("#compat-me").value, you = $("#compat-you").value;
     if (!me || !you) return;
-    const toBirth = (v, t) => {
-      const [y, m, d] = v.split("-").map(Number), b = { y, m, d, lat: 37.57, lon: 126.98, tz: 9, place: "서울" };
-      if (t) { const [hh, mm] = t.split(":").map(Number); b.hh = hh; b.mm = mm; }
-      return b;
-    };
-    const mineSame = profile && me === $("#birth-date").value;
-    const bA = mineSame ? profile.birth : toBirth(me, $("#compat-me-time").value), bB = toBirth(you, $("#compat-you-time").value);
+    const bA = WorldPlace.toBirth(me, $("#compat-me-time").value, compatMePick.get()), bB = WorldPlace.toBirth(you, $("#compat-you-time").value, compatYouPick.get());
     const A = natalChart(bA), B = natalChart(bB);
     const a = { sun: A.sky.sun.sign, moon: A.sky.moon.sign }, b = { sun: B.sky.sun.sign, moon: B.sky.moon.sign };
     const c = compatibility(a, b);
@@ -254,23 +251,22 @@
       </div>`;
   });
   bindChartTips($("#compat-out"));
-  if (profile) $("#compat-me").value = $("#birth-date").value;
+  if (profile) {
+    $("#compat-me").value = $("#birth-date").value;
+    if (Number.isFinite(profile.birth.hh)) $("#compat-me-time").value = $("#birth-time").value;
+    if (profile.birth.cc) compatMePick.set({ cc: profile.birth.cc, city: profile.birth.city });
+  }
 
 
   Pro.init();
 
   /* ---------- 시작 화면: 생년월일부터 ---------- */
-  const startPlace = $("#start-place");
-  if (startPlace) {
-    PLACES.forEach((p, i) => startPlace.add(new Option(p.ko, i)));
-    startPlace.add(new Option("그 밖의 곳 (서울 기준으로 계산)", 0));
-  }
   bind("#start-form", "submit", (e) => {
     e.preventDefault();
     if (!$("#start-date").value) return;
     $("#birth-date").value = $("#start-date").value;
     $("#birth-time").value = $("#start-time").value;
-    $("#birth-place").value = startPlace.value;
+    birthPick.set(startPick.get());
     $("#chart-form").requestSubmit();
     $("#hero").scrollIntoView({ behavior: "smooth", block: "start" });
   });
@@ -297,5 +293,9 @@
   // 저장한 별 지도나 링크로 고른 별자리가 있으면 원판도 그 별자리로 돌린다
   if (current !== signIndexForDoy(wheel.todayDoy)) wheel.goToSign(current);
   ready = true;
-  if (profile) $("#compat-me").value = $("#birth-date").value;
+  if (profile) {
+    $("#compat-me").value = $("#birth-date").value;
+    if (Number.isFinite(profile.birth.hh)) $("#compat-me-time").value = $("#birth-time").value;
+    if (profile.birth.cc) compatMePick.set({ cc: profile.birth.cc, city: profile.birth.city });
+  }
 })();

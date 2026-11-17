@@ -73,6 +73,7 @@ js/backdrop.js  페이지 배경의 실제 밤하늘
 - 별 위치, 별 이름, 별자리 선, 은하수 윤곽: [d3-celestial](https://github.com/ofrohn/d3-celestial) (BSD-3-Clause, `tools/LICENSE-d3-celestial.txt`)
 - 행성 궤도 요소: NASA JPL "Keplerian Elements for Approximate Positions of the Major Planets"
 - 별까지의 거리: [HYG Database](https://github.com/astronexus/HYG-Database) (CC BY-SA 4.0)
+- 출생지 도시와 시간대: [city-timezones](https://github.com/kevinroberts/city-timezones) (MIT, Natural Earth 자료 기반), `js/places-data.js` (`tools/build_places.js`로 생성). 태어난 해의 시차(서머타임, 옛 표준시)는 브라우저 시간대 정보로 계산합니다.
 - 행성·태양·달 표면 지도: [Solar System Scope](https://www.solarsystemscope.com/textures/) (CC BY 4.0, NASA 자료 기반), `assets/planets/`
 
 데이터를 다시 만들려면 위 원본 파일을 한 폴더에 받은 뒤 `python3 -I tools/build_sky_data.py <폴더> js/sky-data.js`를 실행합니다.
