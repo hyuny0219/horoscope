@@ -191,7 +191,7 @@ a { color: inherit; }
 }
 .pick-name { font-family: var(--serif); font-size: 0.98rem; }
 .pick-range { font-size: 0.7rem; color: var(--wall-muted); }
-.pick:hover .pick-frame { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(228, 224, 214, 0.5), 0 14px 22px -12px rgba(0, 0, 0, 0.7); }
+@media (hover: hover) { .pick:hover .pick-frame { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(228, 224, 214, 0.5), 0 14px 22px -12px rgba(0, 0, 0, 0.7); } }
 .pick[aria-checked="true"] .pick-frame {
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 0 2px var(--brass), 0 0 46px 6px rgba(255, 236, 200, 0.22);
 }
@@ -264,7 +264,7 @@ input[type="date"], select {
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
 .view-tab {
-  font-family: var(--sans); font-size: 0.85rem; padding: 0.4rem 0.85rem; cursor: pointer;
+  font-family: var(--sans); font-size: 0.85rem; padding: 0.4rem 0.85rem; cursor: pointer; white-space: nowrap;
   background: none; border: 0; color: var(--wall-muted);
 }
 .view-tab[aria-selected="true"] { background: var(--solid); color: var(--on-solid); }
@@ -473,7 +473,7 @@ input[type="time"] {
 .star-card:disabled { cursor: default; }
 .star-card-inner { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
 .star-card.is-open .star-card-inner { transform: rotateY(180deg); }
-.star-card:not(:disabled):hover .star-card-inner { transform: translateY(-6px) rotateX(6deg); }
+@media (hover: hover) { .star-card:not(:disabled):hover .star-card-inner { transform: translateY(-6px) rotateX(6deg); } }
 .star-card.is-dim { opacity: 0.35; }
 .star-card-back, .star-card-front {
   position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
@@ -521,3 +521,106 @@ input[type="time"] {
   .compat-out { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .star-card-inner { transition: none; } }
+
+/* ---------- 모바일 최적화 ---------- */
+/* 장식용 조명(.picker::before)과 카드 변형이 화면 밖으로 나가 모바일 레이아웃 폭을 넓히지 않게 */
+body { overflow-x: clip; }
+.room { overflow-x: clip; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+button, a, input, select, label { -webkit-tap-highlight-color: transparent; }
+
+/* 노치, 홈 인디케이터 여백 */
+@supports (padding: max(0px)) {
+  .site-head { padding-left: max(var(--gutter), env(safe-area-inset-left)); padding-right: max(var(--gutter), env(safe-area-inset-right)); }
+  .page-sky .site-head { padding-top: max(1.5rem, env(safe-area-inset-top)); }
+  .site-foot { padding-bottom: max(3rem, calc(env(safe-area-inset-bottom) + 1.5rem)); }
+}
+
+@media (max-width: 1100px) {
+  /* 무대 아래로 설정판이 살짝 보여서 스크롤할 수 있다는 걸 알 수 있게 */
+  .stage { height: 74svh; min-height: 22rem; }
+  .console { padding-bottom: max(1.75rem, calc(env(safe-area-inset-bottom) + 1rem)); }
+  .compass, .zoom, .space-pad { bottom: max(1rem, env(safe-area-inset-bottom)); }
+}
+
+/* 손가락 조작: 터치 영역 44px, iOS 입력칸 확대 방지(16px) */
+@media (pointer: coarse) {
+  input, select, .search input, input[type="date"], input[type="time"] { font-size: 16px; min-height: 2.75rem; }
+  input[type="checkbox"] { min-height: 0; width: 1.15rem; height: 1.15rem; }
+  input[type="range"] { min-height: 2rem; }
+  .btn { min-height: 2.75rem; }
+  .compass button, .zoom button, .space-pad button { min-width: 2.75rem; height: 2.75rem; }
+  .view-tab { min-height: 2.5rem; }
+  .chip { padding: 0.4rem 0.7rem; }
+  .chips { gap: 0.45rem; }
+  .day-tab { padding: 0.6rem 0.2rem; }
+  .mode-tab { padding: 0.6rem 0 0.75rem; }
+  .toggles label { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 2.5rem; }
+  .link-btn { padding: 0.5rem 0; }
+  .rooms a { min-height: 2.75rem; }
+}
+
+@media (max-width: 520px) {
+  :root { --gutter: 1.1rem; }
+  .site-head { padding-top: 1rem; padding-bottom: 1rem; gap: 0.5rem 1rem; }
+  .brand { font-size: 1.2rem; }
+  .rooms { gap: 0.85rem; font-size: 0.82rem; }
+  .rooms a { gap: 0.35rem; }
+  .room-no { width: 1.3rem; height: 1.3rem; font-size: 0.7rem; }
+
+  /* 밤하늘 무대 */
+  .view-tabs { top: 3.9rem; }
+  .stage-toast { top: 7.5rem; font-size: 0.82rem; }
+  /* 3D 이동 버튼: 화살표는 손가락으로 끌면 되니 숨기고 한 줄로 */
+  .space-pad { flex-wrap: nowrap; max-width: calc(100% - 2 * var(--gutter) - 6rem); overflow-x: auto; scrollbar-width: none; }
+  .space-pad::-webkit-scrollbar { display: none; }
+  .space-pad button[data-orbit] { display: none; }
+  .space-pad button { flex: none; padding: 0 0.55rem; font-size: 0.8rem; }
+  .zoom button { min-width: 2.6rem; }
+  .compass { gap: 0.25rem; }
+  .console { padding: 1.25rem var(--gutter) 1.75rem; gap: 1.1rem; }
+  .console-title { font-size: 1.5rem; }
+  .btn-star { justify-self: stretch; }
+  .search .btn { flex: none; }
+  .range-ticks { padding-right: 4.2rem; }
+  .discover-actions .btn { flex: 1; }
+  .label-actions .btn { flex: 1 1 auto; }
+
+  /* 성좌판, 운세 */
+  .entrance { padding-top: 2rem; padding-bottom: 2.5rem; }
+  .show-text { font-size: 0.98rem; margin-top: 1.25rem; }
+  .room { padding: 2.5rem var(--gutter) 3.5rem; }
+  .room-sign { margin-bottom: 1.5rem; }
+  .hang { gap: 1.5rem; }
+  #wheel { width: calc(100vw - 2 * var(--gutter) - 1.5rem - 12px); }
+  .label { padding: 1.25rem 1.2rem 1.4rem; }
+  .label-title { font-size: 1.55rem; }
+  .reading-intro { margin-bottom: 1.75rem; }
+  .chart-card { padding: 1.25rem 1.1rem; }
+  .chart-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .chart-form label { min-width: 0; }
+  .chart-form label:has(select), .chart-form .btn { grid-column: 1 / -1; }
+  .chart-form input, .chart-form select { width: 100%; min-width: 0; }
+  #compat-form label { grid-column: auto; }
+  .picker { margin-bottom: 2rem; }
+  .pick-name { font-size: 0.9rem; }
+  .reading-tools { margin-bottom: 1.5rem; }
+  .day-tabs { gap: 1.5rem; }
+  .sheet { padding: 1.4rem 1.15rem; }
+  .r-lucky { gap: 0.9rem 1rem; }
+  .card-row { gap: 0.5rem; }
+  .compat-out { padding: 1.25rem 1.1rem; gap: 1rem; }
+  .meter { grid-template-columns: 5.5rem 1fr 2rem; gap: 0.5rem; }
+}
+
+/* 가로로 눕힌 휴대폰: 무대가 화면 높이를 넘지 않게 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .stage { height: 100svh; min-height: 0; }
+  .page-sky .site-head { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+  .view-tabs { top: 3.4rem; }
+  .stage-help { display: none; }
+  .stage-dome { padding: 3.6rem 1rem 3.6rem; }
+  #dome { width: min(100%, calc(100svh - 7.5rem)); }
+  #wheel { width: min(calc(100svh - 6rem), 26rem); }
+  .hang { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+}
