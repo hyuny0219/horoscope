@@ -219,7 +219,7 @@ function toast(msg) {
 const HELP = {
   look: "끌어서 고개를 돌리고, 휠이나 두 손가락으로 확대합니다. 별을 누르면 별자리를 알려 줍니다.",
   dome: "가운데가 머리 위, 둘레가 지평선입니다. 하늘을 올려다본 방향이라 동쪽이 왼쪽에 있습니다.",
-  space: "끌어서 돌리고, 휠이나 두 손가락으로 다가갑니다. 행성이나 태양을 누르면 그 앞까지 날아가고, 별을 두 번 누르면 그 별 주위를 돕니다. 화면 가장자리의 태양·지구 표시를 누르면 집으로 돌아옵니다.",
+  space: "끌어서 돌리고, 휠이나 두 손가락으로 가리키는 곳에 다가갑니다. 태양·지구 표시 쪽으로 계속 확대하면 태양계와 행성 앞까지 갈 수 있습니다. 행성이나 태양을 누르면 그 앞까지 날아갑니다.",
 };
 function setView(kind) {
   if (!sky && kind !== "dome") { toast("이 브라우저에서는 3D를 쓸 수 없어 전천 지도로 보여 드립니다."); kind = "dome"; }
@@ -261,7 +261,6 @@ $("#space-auto").addEventListener("click", (e) => {
   sky?.setAutoRotate(on);
 });
 $("#space-reset").addEventListener("click", () => sky?.resetSpaceView());
-$("#space-solar").addEventListener("click", () => { sky?.goSolarSystem(); toast("태양계로 갑니다. 행성을 누르면 그 행성 앞까지 날아갑니다. 행성 크기는 보기 좋게 키웠습니다."); });
 $("#zoom-in").addEventListener("click", () => active().setZoom(active().zoom * 1.4));
 $("#zoom-out").addEventListener("click", () => active().setZoom(active().zoom / 1.4));
 

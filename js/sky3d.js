@@ -239,7 +239,8 @@ export class Sky3D {
       enableDamping: true, dampingFactor: 0.08,
       enablePan: true, screenSpacePanning: true, zoomToCursor: false, // 확대해도 초점(대상)이 화면 가운데에 머문다
       rotateSpeed: 0.55, zoomSpeed: 2.2, panSpeed: 0.9,
-      minDistance: 0.0003, maxDistance: 300000, autoRotateSpeed: 0.6,
+      minDistance: 1e-7, maxDistance: 1500 * LY, autoRotateSpeed: 0.6,
+      enableZoom: false, // 확대는 직접: 가리키는 곳으로, 가까운 천체에 끌려 들어가게 (zoomAt)
     });
 
     this.build();
@@ -592,7 +593,14 @@ export class Sky3D {
   setBrightness(g) { this.uniforms.uGain.value = g; }
 
   setZoom(z) {
-    if (this.morphTarget === 1) { this.dollyBy(z > this.zoom ? 0.6 : 1 / 0.6); return; }
+    if (this.morphTarget === 1) {
+      if (!this.controls.enabled) { this.dollyBy(z > this.zoom ? 0.4 : 1 / 0.4); return; }
+      // 버튼은 회전 중심 쪽으로. 화면 가운데 가까이 태양이나 행성이 있으면 그쪽으로 끌려간다
+      const W = this.overlay.clientWidth, H = this.overlay.clientHeight;
+      const c = this.toScreen(this.controls.target);
+      this.zoomAt(c ? c[0] : W / 2, c ? c[1] : H / 2, z > this.zoom ? 0.35 : 1 / 0.35);
+      return;
+    }
     this.fov = Math.max(3, Math.min(120, 75 / z));
   }
   get zoom() { return 75 / this.fov; }
@@ -609,8 +617,7 @@ export class Sky3D {
     const f = this.focus;
     if (!f || !f.radius) return 0.0004;
     // 가장 가까이 가도 행성 둘레가 화면 위아래(세로 화면은 좌우를 조금 넘는 정도)에 남게
-    const r = f.radius * (f.id === "saturn" ? 2.3 : 1);
-    return Math.max(r * 1.3, this.fitDistance(r, 1) * 0.85);
+    return this.minDistForBody(f.id, f.radius);
   }
 
   dollyBy(factor) {
@@ -640,6 +647,7 @@ export class Sky3D {
     }
     this.controls.enabled = false;
     this.focus = focus;
+    this.zoomQ = null;
     this.orbit = { from, fromTarget: looking, to: pos, target, t: this.reduceMotion ? 1 : 0, speed: 1 / seconds };
   }
 
@@ -668,6 +676,82 @@ export class Sky3D {
     this.orbit = null;
     this.controls.minDistance = Math.min(this.minDistFor, this.camera.position.distanceTo(this.controls.target) * 0.9);
     this.controls.enabled = true;
+  }
+
+  /* ---------- 자유 확대 ----------
+   * 가리키는 점을 중심으로 카메라와 회전 중심을 함께 줄이거나 늘린다(그 점은 손가락 밑에 그대로 남는다).
+   * 근처에 태양·지구·행성·밝은 별이 있으면 그 천체를 중심으로 삼고, 다가갈수록 회전 중심도 그쪽으로 옮긴다.
+   * 그래서 별자리 사이에서 태양 표시 쪽으로 계속 확대하면 버튼 없이 태양계, 행성 앞까지 갈 수 있다. */
+  zoomAnchor(x, y) {
+    const near = (p, r) => { const s = this.toScreen(p); return s && Math.hypot(s[0] - x, s[1] - y) < r ? Math.hypot(s[0] - x, s[1] - y) : null; };
+    const R = this.overlay.clientWidth < 600 ? 56 : 40;
+    let best = null;
+    const consider = (id, point, radius, d) => { if (d != null && (!best || d < best.d)) best = { id, point, radius, d }; };
+    if (this.solar.visible) {
+      for (const p of this.planets || []) {
+        const w = this.bodyWorld(p.id), r = this.bodyRadius(p.id);
+        consider(p.id, w, r, near(w, R + this.pxRadius(w, r)));
+      }
+    }
+    const sun = new THREE.Vector3(), rs = this.bodyRadius("sun");
+    const ds = near(sun, R + this.pxRadius(sun, rs));
+    if (ds != null) consider("sun", sun, rs, ds * 0.8); // 태양(우리 동네)을 조금 더 잘 잡는다
+    if (!best && !this.solar.visible) {
+      const i = this.nearestStar(x, y, R * 0.6);
+      if (i != null) best = { id: `star:${i}`, point: this.starPos(i, new THREE.Vector3(), 1), radius: 0 };
+    }
+    if (best) return best;
+    // 빈 곳: 화면의 그 점을 지나는 시선이 회전 중심 깊이와 만나는 곳
+    const cam = this.camera, W = this.overlay.clientWidth, H = this.overlay.clientHeight;
+    const dir = new THREE.Vector3((x / W) * 2 - 1, 1 - (y / H) * 2, 0.5).unproject(cam).sub(cam.position).normalize();
+    const fwd = new THREE.Vector3(); cam.getWorldDirection(fwd);
+    const depth = Math.max(1e-6, this.controls.target.clone().sub(cam.position).dot(fwd)) / Math.max(0.05, dir.dot(fwd));
+    return { id: null, point: cam.position.clone().addScaledVector(dir, depth), radius: 0 };
+  }
+
+  /* factor < 1 이면 다가가고 > 1 이면 멀어진다. 실제 이동은 frame()에서 부드럽게 나눠서 한다 */
+  zoomAt(x, y, factor, gesture) {
+    if (this.morph < 0.5 || !(factor > 0)) return;
+    if (!this.controls.enabled) return;
+    if (gesture && !gesture.anchor) gesture.anchor = this.zoomAnchor(x, y);
+    const a = gesture?.anchor || this.zoomAnchor(x, y);
+    const q = this.zoomQ;
+    if (q && q.anchor === a) q.log += Math.log(factor);
+    else this.zoomQ = { anchor: a, log: Math.log(factor) };
+  }
+
+  applyZoom(dt) {
+    const q = this.zoomQ;
+    if (!q || !this.controls.enabled) return;
+    const k = this.reduceMotion ? 1 : 1 - Math.exp(-dt * 14);
+    let step = q.log * k;
+    q.log -= step;
+    if (Math.abs(q.log) < 1e-4) this.zoomQ = null;
+    const cam = this.camera.position, tgt = this.controls.target, a = q.anchor;
+    const P = a.id && !a.id.startsWith("star:") ? this.bodyWorld(a.id) : a.point;
+    const d = cam.distanceTo(P);
+    // 가장 가까이: 천체면 그 크기에 맞춰, 아니면 아주 가까이까지
+    const minD = a.radius ? this.minDistForBody(a.id, a.radius) : 2e-6, maxD = 1500 * LY; // 가장 멀리: 우리 둘레 별 동네가 한눈에 (더 멀면 별이 거의 안 보인다)
+    let s = Math.exp(step);
+    if (d * s < minD) { s = minD / d; this.zoomQ = null; }
+    if (d * s > maxD) { s = maxD / d; this.zoomQ = null; }
+    cam.sub(P).multiplyScalar(s).add(P);
+    tgt.sub(P).multiplyScalar(s).add(P);
+    // 초점 천체에서 충분히 멀어지면 초점을 놓는다
+    if (this.focus?.radius && cam.distanceTo(tgt) > this.focus.radius * 400) this.focus = null;
+    if (a.id && step < 0) {
+      // 다가갈 때 회전 중심을 그 천체로 조금씩 옮긴다 (화면이 휙 돌지 않게 아주 조금씩)
+      tgt.lerp(P, Math.min(1, -step * 0.9));
+      if (tgt.distanceTo(P) < d * s * 0.03) {
+        tgt.copy(P);
+        if (!a.id.startsWith("star:")) this.focus = { id: a.id, radius: a.radius };
+      }
+    }
+  }
+
+  minDistForBody(id, radius) {
+    const r = radius * (id === "saturn" ? 2.3 : 1);
+    return Math.max(r * 1.3, this.fitDistance(r, 1) * 0.85);
   }
 
   /* 고른 별 주위로 날아가기 */
@@ -773,7 +857,18 @@ export class Sky3D {
     el.addEventListener("pointermove", (e) => {
       const [x, y] = pos(e);
       if (pointers.has(e.pointerId)) pointers.set(e.pointerId, [x, y]);
-      if (drag && !this.controls.enabled) {
+      // 입체 우주: 두 손가락을 벌리고 오므리면 두 손가락 가운데로 다가가고 멀어진다
+      if (this.morph > 0.5 && pointers.size === 2 && drag) {
+        const dist = this.pinchDist(pointers), [a, b] = [...pointers.values()];
+        const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+        if (drag.pinch3 == null) { drag.pinch3 = dist; drag.anchor = null; }
+        else if (dist > 0 && drag.pinch3 > 0) {
+          this.zoomAt(mx, my, Math.pow(drag.pinch3 / dist, 2.2), drag);
+          drag.pinch3 = dist;
+        }
+        drag.moved = 99; return;
+      }
+      if (drag && !this.controls.enabled && this.morph < 0.5) {
         if (pointers.size === 2 && drag.pinch) {
           this.fov = Math.max(3, Math.min(120, drag.fov0 * (drag.pinch / this.pinchDist(pointers))));
           drag.moved = 99; return;
@@ -797,9 +892,19 @@ export class Sky3D {
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
     el.addEventListener("pointerleave", () => this.opts.onHover?.(null));
+    let wheelGesture = null;
     el.addEventListener("wheel", (e) => {
-      if (this.controls.enabled) return;
       e.preventDefault();
+      if (this.morph > 0.5) {
+        this.interruptFlight();
+        const [x, y] = pos(e), now = performance.now();
+        // 이어지는 휠 동작은 같은 끌림 대상을 쓴다
+        if (!wheelGesture || now - wheelGesture.t > 300 || Math.hypot(x - wheelGesture.x, y - wheelGesture.y) > 12) wheelGesture = { x, y, anchor: null };
+        wheelGesture.t = now;
+        const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+        this.zoomAt(x, y, Math.exp(Math.max(-0.6, Math.min(0.6, dy * 0.0035))), wheelGesture);
+        return;
+      }
       this.fov = Math.max(3, Math.min(120, this.fov * (e.deltaY > 0 ? 1.1 : 1 / 1.1)));
     }, { passive: false });
     el.tabIndex = 0;
@@ -1246,6 +1351,7 @@ export class Sky3D {
       }
     } else if (this.controls.enabled) {
       cam.fov = 60;
+      this.applyZoom(dt);
       this.controls.update();
     } else {
       cam.position.set(0, 0, 0);
