@@ -99,6 +99,29 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
+/* 우주 먼지: 움직일 때 지나가는 느낌(시차)을 주는 아주 희미한 점들.
+ * 카메라 둘레 크기 L인 상자에 점을 흩고, 카메라가 움직이면 상자 밖으로 나간 점은 반대편으로 돌아온다.
+ * L은 지금 보는 거리(축척)에 맞춰 바뀌고, 두 축척을 겹쳐 그려 축척이 바뀔 때 튀지 않게 한다. */
+const DUST_VS = `
+attribute vec3 seed;
+uniform vec3 uCamMod; uniform float uL, uFade, uPx;
+varying float vA;
+void main() {
+  vec3 rel = mod(seed * uL - uCamMod, uL) - 0.5 * uL;   // 카메라 기준 위치
+  float d = length(rel);
+  vA = uFade * (1.0 - smoothstep(0.22 * uL, 0.5 * uL, d)) * smoothstep(0.0, 0.04 * uL, d);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(rel, 1.0);
+  gl_PointSize = (1.0 + 1.6 * (1.0 - smoothstep(0.0, 0.25 * uL, d))) * uPx;
+}`;
+const DUST_FS = `
+varying float vA;
+void main() {
+  float r = length(gl_PointCoord - 0.5);
+  if (r > 0.5 || vA < 0.004) discard;
+  gl_FragColor = vec4(vec3(0.7, 0.76, 0.95) * vA * 1.3 * (1.0 - r * 1.6), 1.0);
+}`;
+const fract = (x) => x - Math.floor(x);
+
 /* 지도가 오기 전에 쓰는 한 가지 색 */
 function solidTexture([r, g, b]) {
   const t = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1);
@@ -442,6 +465,21 @@ export class Sky3D {
     this.sunGlow.renderOrder = 6;
     this.solar.add(this.sunGlow);
     this.texLoaded = new Set();
+
+    // 우주 먼지 두 겹 (축척 L과 4L)
+    const DN = 1400, seeds = new Float32Array(DN * 3);
+    for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
+    const dg = new THREE.BufferGeometry();
+    dg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(DN * 3), 3));
+    dg.setAttribute("seed", new THREE.BufferAttribute(seeds, 3));
+    dg.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e9);
+    this.dust = [0, 1].map(() => {
+      const u = { uCamMod: { value: new THREE.Vector3() }, uL: { value: 1 }, uFade: { value: 0 }, uPx: this.uniforms.uPx };
+      const pts = new THREE.Points(dg, new THREE.ShaderMaterial({ vertexShader: DUST_VS, fragmentShader: DUST_FS, uniforms: u, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+      pts.frustumCulled = false; pts.renderOrder = 2;
+      this.scene.add(pts);
+      return { pts, u };
+    });
     this.solar.visible = false;
     this.scene.add(this.solar);
 
@@ -701,12 +739,38 @@ export class Sky3D {
       if (i != null) best = { id: `star:${i}`, point: this.starPos(i, new THREE.Vector3(), 1), radius: 0 };
     }
     if (best) return best;
-    // 빈 곳: 화면의 그 점을 지나는 시선이 회전 중심 깊이와 만나는 곳
+    // 빈 곳: 그쪽 방향에서 가장 가까운 실제 별로 다가간다 (빈 공간으로 가면 아무것도 안 움직여서 멈춘 것 같다)
+    if (!this.solar.visible) {
+      const W0 = this.overlay.clientWidth, H0 = this.overlay.clientHeight, lim = Math.min(W0, H0) * 0.32, v = new THREE.Vector3();
+      let bi = null, bd = lim;
+      const camPos = this.camera.position, depth = Math.max(30 * LY, camPos.distanceTo(this.controls.target) * 4); // 너무 먼 별은 제외
+      for (let i = 0; i < SKY_STARS.length; i++) {
+        if (!(this.starDist[i] > 0)) continue;
+        const p = this.starPos(i, v, 1);
+        // 지금 자리에서 잘 보이는 별만 (멀고 흐린 별 쪽으로 수천 광년 날아가 버리지 않게)
+        const dc = camPos.distanceTo(p);
+        if (dc > depth) continue;
+        const app = SKY_STARS[i][2] + 5 * Math.log10(Math.max(dc, 0.05) / Math.max(p.length(), 0.05));
+        if (app > 4.5) continue;
+        const sp = this.toScreen(p);
+        if (!sp) continue;
+        const d = Math.hypot(sp[0] - x, sp[1] - y) - (4.5 - app) * 6; // 밝게 보이는 별을 더
+        if (d < bd) { bd = d; bi = i; }
+      }
+      if (bi != null) return { id: `star:${bi}`, point: this.starPos(bi, new THREE.Vector3(), 1), radius: 0 };
+    }
+    // 그래도 없으면: 화면의 그 점을 지나는 시선이 회전 중심 깊이와 만나는 곳
     const cam = this.camera, W = this.overlay.clientWidth, H = this.overlay.clientHeight;
     const dir = new THREE.Vector3((x / W) * 2 - 1, 1 - (y / H) * 2, 0.5).unproject(cam).sub(cam.position).normalize();
     const fwd = new THREE.Vector3(); cam.getWorldDirection(fwd);
     const depth = Math.max(1e-6, this.controls.target.clone().sub(cam.position).dot(fwd)) / Math.max(0.05, dir.dot(fwd));
-    return { id: null, point: cam.position.clone().addScaledVector(dir, depth), radius: 0 };
+    // 별 사이 빈 곳으로는 끝없이 다가가지 않는다 (아무것도 안 보이는 빈 공간에 갇히지 않게)
+    let nearest = Infinity;
+    if (!this.solar.visible) {
+      const v = new THREE.Vector3();
+      for (let i = 0; i < SKY_STARS.length; i++) if (this.starDist[i] > 0) nearest = Math.min(nearest, cam.position.distanceTo(this.starPos(i, v)));
+    }
+    return { id: null, point: cam.position.clone().addScaledVector(dir, depth), radius: 0, minD: isFinite(nearest) ? Math.max(0.5 * LY, nearest * 0.25) : 0 };
   }
 
   /* factor < 1 이면 다가가고 > 1 이면 멀어진다. 실제 이동은 frame()에서 부드럽게 나눠서 한다 */
@@ -731,7 +795,7 @@ export class Sky3D {
     const P = a.id && !a.id.startsWith("star:") ? this.bodyWorld(a.id) : a.point;
     const d = cam.distanceTo(P);
     // 가장 가까이: 천체면 그 크기에 맞춰, 아니면 아주 가까이까지
-    const minD = a.radius ? this.minDistForBody(a.id, a.radius) : 2e-6, maxD = 1500 * LY; // 가장 멀리: 우리 둘레 별 동네가 한눈에 (더 멀면 별이 거의 안 보인다)
+    const minD = a.radius ? this.minDistForBody(a.id, a.radius) : a.id ? 0.01 : Math.max(2e-6, a.minD || 0), maxD = 1500 * LY; // 가장 멀리: 우리 둘레 별 동네가 한눈에 (더 멀면 별이 거의 안 보인다)
     let s = Math.exp(step);
     if (d * s < minD) { s = minD / d; this.zoomQ = null; }
     if (d * s > maxD) { s = maxD / d; this.zoomQ = null; }
@@ -1105,6 +1169,52 @@ export class Sky3D {
     g.restore();
   }
 
+  /* 우주 먼지를 지금 축척에 맞춘다 */
+  updateDust() {
+    const cam = this.camera.position;
+    const scale = Math.max(1e-6, cam.distanceTo(this.orbit && !this.orbit.exiting ? this.orbit.target : this.controls.target));
+    const lg = Math.log(scale * 1.6) / Math.log(4), k = Math.floor(lg), f = lg - k; // 4배 단위 축척 사이 어디쯤인지
+    const fade = Math.max(0, Math.min(1, (this.morph - 0.5) * 2)) * 0.95;
+    this.dust.forEach((d, j) => {
+      const L = Math.pow(4, k + j);
+      d.pts.position.copy(cam);          // 카메라 기준 좌표로 그려 큰 좌표에서도 흔들리지 않게
+      d.u.uL.value = L;
+      d.u.uCamMod.value.set(fract(cam.x / L) * L, fract(cam.y / L) * L, fract(cam.z / L) * L);
+      // 작은 상자는 확대하면 나타나고, 큰 상자는 축소하면 나타난다
+      d.u.uFade.value = fade * (j === 0 ? 1 - f : f);
+      d.pts.visible = d.u.uFade.value > 0.01;
+    });
+  }
+
+  /* 지도처럼: 화면 구석 축척 막대와 지금 위치 */
+  drawScaleBar(g, W, H, fits) {
+    if (this.morph < 0.5) return;
+    const m = this.safe || { l: 22, t: 100 };
+    const cam = this.camera, d = Math.max(1e-9, cam.position.distanceTo(this.controls.target));
+    const pxPerUnit = (H / 2) / (d * Math.tan((cam.fov / 2) * D2R));
+    // 광년 / AU / km 중 알맞은 단위로, 1·2·5 단위의 깔끔한 길이
+    const want = 90 / pxPerUnit;                     // 90px 안팎이 몇 단위인지
+    // 태양계는 보기 좋게 키워 그렸으므로 AU는 태양계 안에서만 쓴다. 별 사이에서는 광년(0.1광년까지)
+    const units = this.solar.visible ? [["광년", LY], ["AU", AU], ["만 km", AU / 14960]] : [["광년", LY]];
+    let [name, per] = units.find(([, u]) => want / u >= (u === LY && !this.solar.visible ? 0.01 : 1)) || units[units.length - 1];
+    const n = want / per, p10 = Math.pow(10, Math.floor(Math.log10(n)));
+    const nice = [1, 2, 5, 10].map((k) => k * p10).filter((v) => v <= n * 1.25).pop() || p10;
+    const len = nice * per * pxPerUnit;
+    const x = (m.l || 22) + 2, y = (m.t || 100) + 26;
+    fits?.(x + 70, y - 14, 150, 36, true);
+    const label = `${nice.toLocaleString("ko-KR")}${name === "만 km" ? "만 km" : name}`;
+    const fromSun = cam.position.length();
+    const where = fromSun / LY >= 0.5 ? `태양에서 ${Math.round(fromSun / LY).toLocaleString("ko-KR")}광년`
+      : fromSun / AU >= 0.1 ? `태양에서 ${(fromSun / AU).toFixed(1)}AU` : "태양 곁";
+    g.save();
+    g.strokeStyle = "rgba(232,233,240,0.75)"; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(x, y - 4); g.lineTo(x, y); g.lineTo(x + len, y); g.lineTo(x + len, y - 4); g.stroke();
+    g.font = `500 11px "IBM Plex Sans KR", sans-serif`; g.textAlign = "left"; g.textBaseline = "bottom";
+    g.fillStyle = "rgba(232,233,240,0.85)"; g.fillText(label, x + len + 6, y + 1);
+    g.fillStyle = "rgba(200,206,222,0.7)"; g.fillText(where, x, y - 12);
+    g.restore();
+  }
+
   /* 화면 밖에 있어도 그쪽 가장자리 위치를 돌려준다: [x, y, onScreen] */
   edgePoint(v, m) {
     const W = this.overlay.clientWidth, H = this.overlay.clientHeight;
@@ -1428,6 +1538,7 @@ export class Sky3D {
     else if (cam.view) cam.clearViewOffset();
     cam.updateProjectionMatrix();
     cam.updateMatrixWorld();
+    this.updateDust();
     this.uniforms.uFovScale.value = Math.pow(60 / cam.fov, 0.3) * (this.overlay.clientWidth < 600 ? 0.85 : 1);
     this.renderer.render(this.scene, cam);
     this.drawOverlay();
@@ -1492,9 +1603,57 @@ export class Sky3D {
       g.fillText(c.ko, s[0], s[1]);
     }
 
+    // 태양·지구 표시와 축척 막대를 먼저 자리 잡는다
+    this.drawHomeMarkers(g, W, H, fs, fits);
+    this.drawScaleBar(g, W, H, fits);
     // 별 이름 (입체 우주에서는 선택한 별자리 별들의 거리)
     g.font = `400 ${fs * 0.85}px "IBM Plex Sans KR", sans-serif`;
     g.textAlign = "left";
+    if (in3D && this.showStarNames && this.mode === "explore") {
+      // 지도처럼: 지금 자리에서 밝게 보이는 별부터 이름이 나타나고, 지나가면 사라진다
+      const camPos = this.camera.position, cand = [];
+      for (const [, i] of SKY_NAMED) {
+        if (this.selected && this.constById[this.selected]?.stars.includes(i)) continue; // 고른 별자리 별은 아래에서 거리와 함께
+        const p = this.starPos(i, v), dc = Math.max(camPos.distanceTo(p), 0.05), de = Math.max(p.length(), 0.05);
+        const app = SKY_STARS[i][2] + 5 * Math.log10(dc / de);
+        if (app < 2.6) cand.push([app, i]);
+      }
+      cand.sort((a, b) => a[0] - b[0]);
+      let shown = 0;
+      for (const [app, i] of cand) {
+        if (shown >= 18) break;
+        const s = this.toScreen(this.starPos(i, v));
+        if (!s) continue;
+        const text = starName(i), w = g.measureText(text).width;
+        if (!fits(s[0] + 8 + w / 2, s[1] - 9, w, fs)) continue;
+        g.fillStyle = `rgba(200,212,240,${Math.min(0.85, 0.45 + (2.6 - app) * 0.15).toFixed(2)})`;
+        g.fillText(text, s[0] + 8, s[1] - 9);
+        shown++;
+      }
+    }
+    if (in3D) {
+      // 바로 곁을 지나는 별: 이름 없는 별까지 이름(또는 별자리)과 지금 거리
+      const camPos = this.camera.position, near = [];
+      const reach = Math.max(0.3 * LY, camPos.distanceTo(this.controls.target) * 2.5);
+      for (let i = 0; i < SKY_STARS.length; i++) {
+        if (!(this.starDist[i] > 0)) continue;
+        const d = camPos.distanceTo(this.starPos(i, v));
+        if (d < reach) near.push([d, i]);
+      }
+      near.sort((a, b) => a[0] - b[0]);
+      g.font = `600 ${fs * 0.88}px "IBM Plex Sans KR", sans-serif`;
+      for (const [d, i] of near.slice(0, 4)) {
+        const s = this.toScreen(this.starPos(i, v));
+        if (!s) continue;
+        const info = starInfo(i), dl = d / LY;
+        const dist = dl >= 0.1 ? `${dl.toFixed(dl < 10 ? 1 : 0)}광년` : `${Math.max(1, Math.round(d / AU)).toLocaleString("ko-KR")}AU`;
+        const text = `${info.name} · ${dist}`, w = g.measureText(text).width;
+        if (!fits(s[0] + 12 + w / 2, s[1] - 12, w, fs)) continue;
+        g.fillStyle = "rgba(255,236,190,0.95)";
+        g.fillText(text, s[0] + 12, s[1] - 12);
+      }
+      g.font = `400 ${fs * 0.85}px "IBM Plex Sans KR", sans-serif`;
+    }
     if (in3D && this.selected) {
       const c = this.constById[this.selected];
       for (const i of c.stars) {
@@ -1522,8 +1681,7 @@ export class Sky3D {
         g.fillText(text, s[0] + 8, s[1] - 9);
       }
     }
-    // 행성 이름 (올려다보기: 하늘에 뜬 행성 / 입체 우주: 태양계 안). 태양과 지구 표시를 먼저 자리 잡는다
-    this.drawHomeMarkers(g, W, H, fs, fits);
+    // 행성 이름 (올려다보기: 하늘에 뜬 행성 / 입체 우주: 태양계 안)
     g.textAlign = "left";
     g.font = `600 ${fs * 0.9}px "IBM Plex Sans KR", sans-serif`;
     for (const p of this.planets || []) {
