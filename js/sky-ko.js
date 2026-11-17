@@ -50,3 +50,71 @@ const PLACES = [
   { id: "gangneung", ko: "강릉", lat: 37.75, lon: 128.88 },
   { id: "jeju", ko: "제주", lat: 33.5, lon: 126.53 },
 ];
+
+/* 우리 옛 하늘의 이름 (동아시아 별자리 체계) */
+const STAR_TRAD = {
+  Polaris: "북극성", Sirius: "천랑성 (하늘의 늑대)", Canopus: "노인성 (수성노인)", Vega: "직녀성", Altair: "견우성",
+  Antares: "대화성 (심수의 큰 불)", Arcturus: "대각성", Spica: "각수의 첫 별", Regulus: "헌원 열넷째 별",
+  Dubhe: "북두칠성 천추", Merak: "북두칠성 천선", Phecda: "북두칠성 천기", Megrez: "북두칠성 천권",
+  Alioth: "북두칠성 옥형", Mizar: "북두칠성 개양", Alkaid: "북두칠성 요광",
+  Alnitak: "삼태성 (삼성)", Alnilam: "삼태성 (삼성)", Mintaka: "삼태성 (삼성)",
+  Deneb: "천진 넷째 별", Capella: "오거 둘째 별", Aldebaran: "필수 다섯째 별", Fomalhaut: "북락사문",
+  Castor: "북하 둘째 별", Pollux: "북하 셋째 별", Procyon: "남하 셋째 별", Betelgeuse: "삼수 넷째 별", Rigel: "삼수 일곱째 별",
+};
+
+/* 유명한 별 이야기 */
+const STAR_STORY = {
+  Sirius: "태양을 빼면 밤하늘에서 가장 밝은 별입니다. 8.6광년으로 아주 가까워서 밝게 보입니다. 옆에 흰색 왜성 동반성이 돌고 있습니다.",
+  Canopus: "두 번째로 밝은 별이지만 한국에서는 남쪽 지평선에 아주 낮게 잠깐 떠서, 보면 오래 산다는 노인성 전설이 생겼습니다.",
+  Arcturus: "북두칠성 손잡이를 따라 곡선을 그리면 닿는 주황색 별입니다. 태양보다 25배쯤 큰 늙은 별입니다.",
+  Vega: "여름밤 머리 위에서 가장 밝은 별, 견우와 직녀 이야기의 직녀입니다. 약 1만 2천 년 뒤에는 북극성이 됩니다.",
+  Altair: "은하수 건너 베가를 마주 보는 견우성입니다. 아주 빠르게 자전해서 적도 쪽이 납작하게 부풀어 있습니다.",
+  Capella: "노란 빛의 겨울 별입니다. 실은 태양 비슷한 거성 두 개가 서로를 도는 쌍성입니다.",
+  Rigel: "오리온의 발에 있는 푸르고 뜨거운 초거성입니다. 태양보다 수만 배 밝습니다.",
+  Betelgeuse: "오리온의 어깨에 있는 붉은 초거성입니다. 언젠가 초신성으로 폭발하면 낮에도 보일 만큼 밝아집니다.",
+  Procyon: "겨울철 대삼각형의 한 꼭짓점입니다. 이름은 개보다 먼저 뜬다는 뜻으로, 큰개자리 시리우스보다 먼저 떠오릅니다.",
+  Aldebaran: "황소의 붉은 눈입니다. 뒤를 따른다는 뜻의 이름처럼 플레이아데스 성단을 뒤쫓아 하늘을 건넙니다.",
+  Antares: "전갈의 심장에서 붉게 타는 초거성입니다. 화성의 맞수라는 뜻의 이름을 가졌습니다.",
+  Spica: "처녀가 든 보리 이삭입니다. 아주 가까이 붙어 도는 뜨거운 별 두 개로 이루어져 있습니다.",
+  Pollux: "쌍둥이 형제 중 동생의 머리입니다. 주위를 도는 행성이 발견된 별입니다.",
+  Castor: "쌍둥이 형제 중 형의 머리입니다. 망원경으로 보면 별 여섯 개가 얽힌 다중성입니다.",
+  Deneb: "백조의 꼬리입니다. 2천 광년 넘게 떨어져 있는데도 1등성으로 보일 만큼 엄청나게 밝은 별입니다.",
+  Regulus: "사자의 심장, 작은 왕이라는 이름의 별입니다. 황도 바로 위에 있어서 달이 자주 가리고 지나갑니다.",
+  Fomalhaut: "가을 남쪽 하늘에 홀로 빛나는 별입니다. 먼지 고리가 둘러싸고 있어 행성이 태어나는 중입니다.",
+  Polaris: "지구의 자전축이 가리키는 곳에 있어 밤새 거의 움직이지 않습니다. 옛날부터 길잡이 별이었습니다.",
+  Mizar: "북두칠성 손잡이 가운데 별입니다. 눈이 좋은 사람은 바로 옆의 작은 별 알코르까지 둘로 볼 수 있어 시력 검사에 쓰였습니다.",
+  Dubhe: "북두칠성 국자 끝의 별입니다. 메라크와 이어 다섯 배 늘리면 북극성을 찾을 수 있습니다.",
+  Algol: "악마의 별이라 불립니다. 사흘에 한 번 몇 시간 동안 어두워지는데, 짝별이 앞을 가리기 때문입니다.",
+  Mira: "놀라운 별이라는 뜻입니다. 11개월 주기로 밝아졌다가 맨눈에 안 보일 만큼 어두워집니다.",
+  Alnilam: "오리온의 허리띠 가운데 별입니다. 셋이 나란히 선 삼태성은 겨울 하늘을 찾는 가장 쉬운 표지입니다.",
+};
+
+const GREEK_KO = { α: "알파", β: "베타", γ: "감마", δ: "델타", ε: "엡실론", ζ: "제타", η: "에타", θ: "세타", ι: "이오타", κ: "카파", λ: "람다", μ: "뮤", ν: "뉴", ξ: "크시", ο: "오미크론", π: "파이", ρ: "로", σ: "시그마", τ: "타우", υ: "입실론", φ: "피", χ: "카이", ψ: "프시", ω: "오메가" };
+
+const NAMED_BY_INDEX = new Map(SKY_NAMED.map(([en, i, ko, bayer, con]) => [i, { en, ko, bayer, con }]));
+
+/* 화면에 쓸 별 이름 (이름 없는 별은 null) */
+function starName(i) {
+  const n = NAMED_BY_INDEX.get(i);
+  return n ? STAR_KO[n.en] || n.ko || n.en : null;
+}
+
+/* 별 카드에 쓸 정보 */
+function starInfo(i) {
+  const [ra, dec, mag, bv, ly] = SKY_STARS[i];
+  const n = NAMED_BY_INDEX.get(i);
+  const conId = n?.con || (typeof CONSTELLATIONS !== "undefined" ? CONSTELLATIONS.find((c) => c.segs.some((s) => s.includes(i)))?.id : null);
+  const con = typeof CONST_BY_ID !== "undefined" && conId ? CONST_BY_ID[conId] : null;
+  const temp = Math.round((4600 * (1 / (0.92 * bv + 1.7) + 1 / (0.92 * bv + 0.62))) / 100) * 100; // B-V로 어림한 표면 온도
+  const colorWord = bv < 0 ? "푸른 흰색" : bv < 0.3 ? "흰색" : bv < 0.6 ? "노르스름한 흰색" : bv < 1.0 ? "노란색" : bv < 1.4 ? "주황색" : "붉은 주황색";
+  const year = new Date().getFullYear() - Math.round(ly);
+  return {
+    i, ra, dec, mag, ly, temp, colorWord,
+    name: starName(i) || (con ? `${con.ko}의 별` : "이름 없는 별"),
+    en: n?.en || "", trad: n ? STAR_TRAD[n.en] : null, story: n ? STAR_STORY[n.en] : null,
+    bayer: n?.bayer && con ? `${con.ko} ${GREEK_KO[n.bayer] || n.bayer}별 (${n.bayer} ${conId})` : "",
+    con, conId, rank: i + 1, // SKY_STARS는 밝은 순으로 정렬되어 있다
+    magClass: mag < 1.5 ? "1등성" : `${Math.round(mag)}등성`,
+    lightYear: !ly ? null : year > 0 ? `${year}년` : `기원전 ${1 - year}년`,
+  };
+}

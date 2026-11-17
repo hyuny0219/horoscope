@@ -47,6 +47,14 @@
         <button type="button" data-az="270">서</button>
         <button type="button" data-zenith="1">머리 위</button>
       </div>
+      <div class="space-pad" id="space-pad" role="group" aria-label="입체 우주 이동" hidden>
+        <button type="button" data-orbit="-20,0" aria-label="왼쪽으로 돌기">←</button>
+        <button type="button" data-orbit="0,12" aria-label="위로 돌기">↑</button>
+        <button type="button" data-orbit="0,-12" aria-label="아래로 돌기">↓</button>
+        <button type="button" data-orbit="20,0" aria-label="오른쪽으로 돌기">→</button>
+        <button type="button" id="space-auto" aria-pressed="false">자동 회전</button>
+        <button type="button" id="space-reset">처음 위치로</button>
+      </div>
       <div class="zoom" role="group" aria-label="확대">
         <button type="button" id="zoom-in" aria-label="확대">+</button>
         <button type="button" id="zoom-out" aria-label="축소">−</button>
@@ -62,6 +70,13 @@
       <h1 class="console-title">지금 내 머리 위의 하늘</h1>
       <button type="button" class="btn btn-star" id="here-now">내 위치에서 지금 하늘 보기</button>
       <p class="console-summary" id="summary" aria-live="polite"></p>
+
+      <form class="search" id="search" role="search">
+        <label class="sr-only" for="search-input">별이나 별자리 찾기</label>
+        <input id="search-input" list="search-list" autocomplete="off" placeholder="별이나 별자리 이름 (예: 베가, 북두칠성, 오리온)">
+        <button type="submit" class="btn btn-ghost">찾기</button>
+        <datalist id="search-list"></datalist>
+      </form>
 
       <form class="controls" onsubmit="return false">
         <div class="field">
@@ -97,7 +112,8 @@
       <section class="mode-panel" id="panel-explore" role="tabpanel" aria-labelledby="tab-explore">
         <div class="toggles">
           <label><input type="checkbox" id="opt-lines" checked> 별자리 선</label>
-          <label><input type="checkbox" id="opt-names" checked> 이름</label>
+          <label><input type="checkbox" id="opt-names" checked> 별자리 이름</label>
+          <label><input type="checkbox" id="opt-starnames" checked> 별 이름</label>
         </div>
         <h2 class="panel-heading" id="visible-heading">지금 하늘에 뜬 별자리</h2>
         <div class="chips" id="visible-list"></div>
@@ -117,6 +133,19 @@
         <h2 class="panel-heading">내 별자리 도감</h2>
         <div class="chips" id="found-list"></div>
       </section>
+
+      <article class="label detail star-detail" id="star-detail" hidden aria-live="polite">
+        <p class="label-kicker" id="star-pos"></p>
+        <h2 class="label-title label-title-small" id="star-name"></h2>
+        <p class="label-sub" id="star-sub"></p>
+        <dl class="label-facts" id="star-facts"></dl>
+        <p class="label-body" id="star-story"></p>
+        <p class="label-note" id="star-light"></p>
+        <div class="label-actions">
+          <button type="button" class="btn btn-line" id="star-const"></button>
+          <button type="button" class="btn btn-line" id="star-close">닫기</button>
+        </div>
+      </article>
 
       <article class="label detail" id="detail" hidden aria-live="polite">
         <p class="label-kicker" id="detail-pos"></p>
@@ -139,6 +168,7 @@
   <script src="js/sky-data.js"></script>
   <script src="js/sky-ko.js"></script>
   <script src="js/astro.js"></script>
+  <script src="js/milkyway-data.js"></script>
   <script src="js/milkyway.js"></script>
   <script src="js/sky-view.js"></script>
   <script type="module" src="js/sky-page.js"></script>

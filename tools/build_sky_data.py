@@ -11,7 +11,7 @@ import math
 import sys
 from pathlib import Path
 
-MAG_LIMIT = 5.0          # 맨눈 한계 근처
+MAG_LIMIT = 6.0          # 어두운 시골 하늘의 맨눈 한계
 PC_TO_LY = 3.26156
 
 
@@ -87,12 +87,13 @@ def main(src: Path, out: Path):
             bv = 0.6
         star_rows.append([ra(lon), round(lat, 3), round(f["properties"]["mag"], 2), bv, round(dist.get(f["id"], 0))])
 
+    # 이름 있는 별: [영문 이름, 별 번호, 한국어 표기, 바이어 기호, 별자리]
     named = []
     for hip, n in names.items():
         i = index.get(int(hip))
-        if i is None or not n.get("name") or star_rows[i][2] > 2.6:
+        if i is None or not n.get("name"):
             continue
-        named.append([n["name"], i])
+        named.append([n["name"], i, n.get("ko") or "", n.get("bayer") or "", n.get("c") or ""])
     named.sort(key=lambda r: star_rows[r[1]][2])
 
     info = {f["id"]: f for f in consts}
@@ -110,7 +111,7 @@ def main(src: Path, out: Path):
         " * 별 위치·별자리 선: d3-celestial (https://github.com/ofrohn/d3-celestial, BSD-3-Clause)\n"
         " * 별까지의 거리: HYG Database (https://github.com/astronexus/HYG-Database, CC BY-SA 4.0)\n"
         " * SKY_STARS: [적경°, 적위°, 등급, B-V 색지수, 거리(광년, 0 = 모름)]\n"
-        " * SKY_NAMED: [이름, 별 번호]  SKY_CONSTS.l: 별 번호를 잇는 선 */\n"
+        " * SKY_NAMED: [영문 이름, 별 번호, 한국어 표기, 바이어 기호, 별자리]  SKY_CONSTS.l: 별 번호를 잇는 선 */\n"
         f"const SKY_STARS = {json.dumps(star_rows, separators=(',', ':'))};\n"
         f"const SKY_NAMED = {json.dumps(named, ensure_ascii=False, separators=(',', ':'))};\n"
         f"const SKY_CONSTS = {json.dumps(const_rows, ensure_ascii=False, separators=(',', ':'))};\n"

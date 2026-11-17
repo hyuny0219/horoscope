@@ -15,54 +15,62 @@ const dirFromAltAz = (alt, az, out = new THREE.Vector3()) => {
   return out.set(Math.sin(a) * Math.cos(h), Math.sin(h), -Math.cos(a) * Math.cos(h));
 };
 
+/* 별: 등급 1 차이 = 밝기 2.512배. 지평선 쪽은 공기를 더 많이 지나 어두워지고(대기 감광) 더 많이 반짝인다 */
 const STAR_VS = `
 attribute vec3 dir; attribute float dist; attribute float mag; attribute vec3 color; attribute float phase;
 uniform float uMorph, uTime, uPx, uFovScale, uMagLimit, uVis;
-varying vec3 vColor; varying float vAlpha;
+varying vec3 vColor; varying float vLum; varying float vGlare; varying float vCore; varying float vSize;
 void main() {
   float d = dist > 0.0 ? dist : ${(3000 * LY).toFixed(1)};
   vec3 p = dir * mix(${R.toFixed(1)}, d, uMorph);
-  vec4 mv = modelViewMatrix * vec4(p, 1.0);
-  gl_Position = projectionMatrix * mv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   float alt = dir.y;
-  float ext = mix(step(-0.02, alt) * clamp(0.3 + alt * 3.5, 0.0, 1.0), 1.0, uMorph);
-  float lim = mix(uMagLimit, 6.5, uMorph);
-  float vis = clamp((lim - mag) / 1.1, 0.0, 1.0);
-  float size = max(3.0, (6.6 - mag) * 2.9) * uFovScale;
-  float tw = 1.0 + (1.0 - uMorph) * 0.28 * sin(uTime * (1.7 + phase * 3.1) + phase * 37.0) * clamp(1.1 - alt, 0.25, 1.0);
-  gl_PointSize = size * tw * uPx;
-  vColor = color;
-  vAlpha = vis * ext * mix(uVis, 1.0, uMorph) * ((dist > 0.0 || uMorph < 0.5) ? 1.0 : 0.0);
+  float airmass = 1.0 / max(alt + 0.025, 0.04);
+  float m = mag + (1.0 - uMorph) * 0.22 * (airmass - 1.0);
+  float lim = mix(uMagLimit, 6.8, uMorph);
+  float lb = max(0.0, -0.4 * (m - lim));                    // 한계 등급보다 몇 자리 밝은가 (log10)
+  float vis = (1.0 - smoothstep(-0.3, 0.4, m - lim)) * mix(step(-0.01, alt), 1.0, uMorph);
+  vLum = clamp(0.3 + 0.24 * lb, 0.0, 1.15) * vis * mix(uVis, 1.0, uMorph);
+  if (dist <= 0.0 && uMorph > 0.5) vLum = 0.0;
+  float k = uFovScale * uPx;
+  float tw = 1.0 + (1.0 - uMorph) * 0.25 * sin(uTime * (1.7 + phase * 3.1) + phase * 37.0) * clamp(airmass * 0.15, 0.15, 1.0);
+  vCore = (0.75 + 0.5 * lb) * k * tw;                       // 별빛 중심 반지름 (픽셀)
+  vGlare = clamp(lb - 1.6, 0.0, 2.2);                        // 1등성 안팎부터 빛 번짐
+  vSize = vCore * 4.0 + vGlare * 8.0 * k + 2.0;
+  gl_PointSize = vSize;
+  vColor = mix(vec3(1.0), color, 0.8);
 }`;
 const STAR_FS = `
-varying vec3 vColor; varying float vAlpha;
+varying vec3 vColor; varying float vLum; varying float vGlare; varying float vCore; varying float vSize;
 void main() {
-  vec2 c = gl_PointCoord - 0.5; float r = length(c) * 2.0;
-  if (r > 1.0) discard;
-  float core = 1.0 - smoothstep(0.05, 0.3, r);
-  float halo = exp(-r * r * 7.0) * 0.8 + exp(-r * r * 2.2) * 0.18;
-  gl_FragColor = vec4(vColor * (core + halo) * vAlpha, 1.0);
+  float rp = length(gl_PointCoord - 0.5) * vSize;            // 중심에서 픽셀 거리
+  float core = exp(-(rp * rp) / (vCore * vCore));
+  float hr = vSize * 0.22;
+  float halo = exp(-(rp * rp) / (hr * hr)) * 0.28 * vGlare;
+  float a = core + halo;
+  if (a < 0.004) discard;
+  gl_FragColor = vec4(vColor * a * vLum, 1.0);
 }`;
 
+/* 은하수: 실제 윤곽으로 만든 전천 이미지(assets/milkyway.png)를 적도 좌표 구에 입힌다 */
 const MW_VS = `
-attribute vec3 dir; attribute float glow; attribute float rnd;
-uniform float uMorph, uPx, uFovScale, uVis;
-varying float vA; varying float vR;
+varying vec3 vEq; varying vec3 vWorld;
 void main() {
-  vec3 p = dir * mix(${(R * 1.02).toFixed(1)}, ${(R * 40).toFixed(1)}, uMorph);
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-  gl_PointSize = (14.0 + rnd * 22.0) * uFovScale * uPx;
-  float ext = mix(clamp(dir.y * 5.0, 0.0, 1.0), 1.0, uMorph);
-  vA = glow * uVis * ext; vR = rnd;
+  vEq = normalize(position);
+  vWorld = normalize((modelMatrix * vec4(position, 1.0)).xyz);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`;
 const MW_FS = `
-varying float vA; varying float vR;
+uniform sampler2D uTex; uniform float uVis, uMorph;
+varying vec3 vEq; varying vec3 vWorld;
 void main() {
-  vec2 c = gl_PointCoord - 0.5; float r = length(c) * 2.0;
-  if (r > 1.0) discard;
-  float g = exp(-r * r * 4.0);
-  vec3 col = mix(vec3(0.75, 0.78, 0.95), vec3(1.0, 0.9, 0.78), vR);
-  gl_FragColor = vec4(col * g * vA * 0.16, 1.0);
+  vec3 e = normalize(vEq);
+  float u = fract(atan(e.y, e.x) / 6.2831853);
+  float v = 0.5 + asin(clamp(e.z, -1.0, 1.0)) / 3.1415927;
+  float t = texture2D(uTex, vec2(u, v)).r;
+  float ext = mix(smoothstep(0.0, 0.3, vWorld.y), 1.0, uMorph);
+  vec3 col = mix(vec3(0.62, 0.66, 0.82), vec3(0.92, 0.86, 0.74), t);
+  gl_FragColor = vec4(col * pow(t, 1.15) * 0.42 * uVis * ext, 1.0);
 }`;
 
 const LINE_VS = `
@@ -81,7 +89,7 @@ const LINE_FS = `varying vec3 vC; void main() { gl_FragColor = vec4(vC, 1.0); }`
 const SKY_VS = `varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 const SKY_FS = `
 varying vec3 vDir;
-uniform vec3 uSun; uniform float uGlow, uMorph;
+uniform vec3 uSun; uniform vec3 uMoon; uniform float uGlow, uMorph, uMoonLight;
 void main() {
   vec3 v = normalize(vDir);
   float alt = v.y, sunAlt = uSun.y;
@@ -94,6 +102,9 @@ void main() {
   col += vec3(0.22, 0.14, 0.07) * band * uGlow * (1.0 - day * 0.7); // 도시 불빛
   float toward = pow(max(dot(v, normalize(uSun)), 0.0), 6.0);
   col += vec3(1.0, 0.55, 0.25) * toward * smoothstep(-0.32, 0.0, sunAlt) * band * 0.9; // 노을
+  // 달빛: 하늘 전체가 푸르게 밝아지고 달 둘레가 환하다
+  float nearMoon = pow(max(dot(v, normalize(uMoon)), 0.0), 40.0);
+  col += (vec3(0.035, 0.05, 0.09) * (0.5 + band) + vec3(0.25, 0.25, 0.28) * nearMoon) * uMoonLight * (1.0 - day);
   gl_FragColor = vec4(col * (1.0 - uMorph), 1.0);
 }`;
 
@@ -103,6 +114,7 @@ export class Sky3D {
     this.opts = opts;
     this.mode = "explore"; this.showLines = true; this.showNames = true;
     this.discovered = new Set(); this.selected = null; this.hint = null; this.flash = null;
+    this.showStarNames = true; this.selectedStar = null;
     this.skyCondition = "dark";
     this.yaw = 180; this.pitch = 28; this.fov = 75;
     this.morph = 0; this.morphTarget = 0;
@@ -122,8 +134,12 @@ export class Sky3D {
     this.camera = new THREE.PerspectiveCamera(this.fov, 1, 0.1, 400000);
     this.controls = new OrbitControls(this.camera, this.overlay);
     this.controls.enabled = false;
-    this.controls.enableDamping = true;
-    this.controls.enablePan = false;
+    Object.assign(this.controls, {
+      enableDamping: true, dampingFactor: 0.08,
+      enablePan: true, screenSpacePanning: true, zoomToCursor: true,
+      rotateSpeed: 0.55, zoomSpeed: 1.4, panSpeed: 0.9,
+      minDistance: 3, maxDistance: 80000, autoRotateSpeed: 0.6,
+    });
 
     this.build();
     this.bindInput();
@@ -165,22 +181,16 @@ export class Sky3D {
     this.scene.add(this.stars);
 
     // 은하수
-    const m = MILKY_WAY.length;
-    this.mwRaDec = MILKY_WAY;
-    this.mwDir = new Float32Array(m * 3);
-    const glow = new Float32Array(m), rnd = new Float32Array(m);
-    MILKY_WAY.forEach(([, , g, r], i) => { glow[i] = g; rnd[i] = r; });
-    const mg = new THREE.BufferGeometry();
-    mg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(m * 3), 3));
-    mg.setAttribute("dir", new THREE.BufferAttribute(this.mwDir, 3));
-    mg.setAttribute("glow", new THREE.BufferAttribute(glow, 1));
-    mg.setAttribute("rnd", new THREE.BufferAttribute(rnd, 1));
-    this.mwUniforms = { uMorph: this.uniforms.uMorph, uPx: this.uniforms.uPx, uFovScale: this.uniforms.uFovScale, uVis: { value: 1 } };
-    this.mw = new THREE.Points(mg, new THREE.ShaderMaterial({
-      vertexShader: MW_VS, fragmentShader: MW_FS, uniforms: this.mwUniforms,
+    const tex = new THREE.TextureLoader().load(new URL("../assets/milkyway.png", import.meta.url).href);
+    tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false; // 이음매 방지
+    this.mwUniforms = { uTex: { value: tex }, uVis: { value: 1 }, uMorph: this.uniforms.uMorph };
+    this.mw = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 48), new THREE.ShaderMaterial({
+      vertexShader: MW_VS, fragmentShader: MW_FS, uniforms: this.mwUniforms, side: THREE.BackSide,
       blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
     }));
+    this.mw.matrixAutoUpdate = false;
     this.mw.renderOrder = 2; this.mw.frustumCulled = false;
+    this.eqToHorizon = new THREE.Matrix4();
     this.scene.add(this.mw);
 
     // 별자리 선: 선분마다 꼭짓점 두 개
@@ -208,7 +218,7 @@ export class Sky3D {
     this.scene.add(this.lines);
 
     // 하늘(대기)
-    this.skyUniforms = { uSun: { value: new THREE.Vector3(0, -1, 0) }, uGlow: { value: 0 }, uMorph: this.uniforms.uMorph };
+    this.skyUniforms = { uSun: { value: new THREE.Vector3(0, -1, 0) }, uMoon: { value: new THREE.Vector3(0, -1, 0) }, uMoonLight: { value: 0 }, uGlow: { value: 0 }, uMorph: this.uniforms.uMorph };
     const sky = new THREE.Mesh(new THREE.SphereGeometry(R * 60, 48, 24), new THREE.ShaderMaterial({
       vertexShader: SKY_VS, fragmentShader: SKY_FS, uniforms: this.skyUniforms, side: THREE.BackSide, depthWrite: false,
     }));
@@ -272,12 +282,9 @@ export class Sky3D {
     this.stars.geometry.attributes.dir.needsUpdate = true;
     this.linePairs.forEach((si, i) => this.lineDir.set(this.starDir.subarray(si * 3, si * 3 + 3), i * 3));
     this.lines.geometry.attributes.dir.needsUpdate = true;
-    this.mwRaDec.forEach(([ra, dec], i) => {
-      const aa = toAltAz(ra, dec, place.lat, lst);
-      dirFromAltAz(aa.alt, aa.az, tmp);
-      this.mwDir.set([tmp.x, tmp.y, tmp.z], i * 3);
-    });
-    this.mw.geometry.attributes.dir.needsUpdate = true;
+    // 적도 좌표의 세 축이 지금 하늘 어디를 향하는지로 회전 행렬을 만든다
+    const axis = (ra, dec) => { const a = toAltAz(ra, dec, place.lat, lst); return dirFromAltAz(a.alt, a.az); };
+    this.eqToHorizon.makeBasis(axis(0, 0), axis(90, 0), axis(0, 90));
 
     this.consts = CONSTELLATIONS.map((c) => {
       const centers = c.centers.map(([ra, dec]) => toAltAz(ra, dec, place.lat, lst));
@@ -293,17 +300,20 @@ export class Sky3D {
     const moon = moonPosition(time), ma = toAltAz(moon.ra, moon.dec, place.lat, lst);
     this.moonAA = { ...ma, ...moon };
     this.moon.position.copy(dirFromAltAz(ma.alt, ma.az)).multiplyScalar(R * 0.97);
+    dirFromAltAz(ma.alt, ma.az, this.skyUniforms.uMoon.value);
+    this.skyUniforms.uMoonLight.value = moon.illum * Math.max(0, Math.min(1, (ma.alt + 2) / 25));
     this.paintMoon(moon);
     this.applyConditions();
     this.updateLineColors();
   }
 
   applyConditions() {
-    const t = Math.max(0, Math.min(1, (this.sunAA.alt + 18) / 18));
+    const t = Math.max(0, Math.min(1, (this.sunAA.alt + 18) / 18)); // 0 = 완전한 밤
     const city = this.skyCondition === "city";
-    this.uniforms.uVis.value = this.sunAA.alt > 0 ? 0.05 : 1 - t * 0.8;
-    this.uniforms.uMagLimit.value = (city ? 3.4 : 6.0) - t * 3;
-    this.mwUniforms.uVis.value = city ? 0 : Math.max(0, 1 - t * 1.6);
+    const moon = this.skyUniforms.uMoonLight.value;                  // 0 ~ 1
+    this.uniforms.uVis.value = this.sunAA.alt > 0 ? 0.05 : 1 - t * 0.5;
+    this.uniforms.uMagLimit.value = (city ? 3.8 : 6.3) - t * 4 - moon * (city ? 0.4 : 1.6);
+    this.mwUniforms.uVis.value = city ? 0 : Math.max(0, 1 - t * 1.6) * (1 - moon * 0.85);
     this.skyUniforms.uGlow.value = city ? 1 : 0.15;
   }
 
@@ -350,8 +360,46 @@ export class Sky3D {
   }
 
   /* ---------- 카메라 ---------- */
-  setZoom(z) { this.fov = Math.max(18, Math.min(110, 75 / z)); }
+  setZoom(z) {
+    if (this.controls.enabled) { this.dollyBy(z > this.zoom ? 0.7 : 1 / 0.7); return; }
+    this.fov = Math.max(18, Math.min(110, 75 / z));
+  }
   get zoom() { return 75 / this.fov; }
+
+  /* 입체 우주 카메라 조작 */
+  dollyBy(factor) {
+    const off = this.camera.position.clone().sub(this.controls.target);
+    const len = Math.max(this.controls.minDistance, Math.min(this.controls.maxDistance, off.length() * factor));
+    this.flyTo(this.controls.target.clone().add(off.setLength(len)), this.controls.target.clone(), 0.35);
+  }
+
+  orbitBy(dAz, dEl) {
+    const tgt = this.controls.target, off = this.camera.position.clone().sub(tgt);
+    const sph = new THREE.Spherical().setFromVector3(off);
+    sph.theta += dAz * D2R;
+    sph.phi = Math.max(0.05, Math.min(Math.PI - 0.05, sph.phi - dEl * D2R));
+    this.flyTo(tgt.clone().add(new THREE.Vector3().setFromSpherical(sph)), tgt.clone(), 0.35);
+  }
+
+  /* 카메라를 부드럽게 옮긴다 (끝나면 다시 손으로 조작) */
+  flyTo(pos, target, seconds = 1.2) {
+    this.controls.enabled = false;
+    this.orbit = { from: this.camera.position.clone(), fromTarget: this.controls.target.clone(), to: pos, target, t: this.reduceMotion ? 1 : 0, speed: 1 / seconds };
+  }
+
+  /* 고른 별 주위로 날아가기 */
+  orbitStar(i) {
+    const p = this.starPos(i);
+    const off = this.camera.position.clone().sub(this.controls.target).setLength(Math.max(40, p.length() * 0.15));
+    this.selectedStar = i;
+    this.flyTo(p.clone().add(off), p, 1.4);
+  }
+
+  resetSpaceView() {
+    if (this.selected) this.orbitTo(this.selected);
+  }
+
+  setAutoRotate(on) { this.controls.autoRotate = on; }
 
   lookAtConstellation(id) {
     const c = this.constById?.[id];
@@ -401,6 +449,7 @@ export class Sky3D {
     this.selected = id;
     const ctr = this.centroid3D(id);
     const off = this.camera.position.clone().sub(this.controls.target).setLength(ctr.length() * 1.2);
+    this.controls.enabled = false;
     this.orbit = { from: this.camera.position.clone(), fromTarget: this.controls.target.clone(), to: ctr.clone().add(off), target: ctr, t: this.reduceMotion ? 1 : 0 };
     this.updateLineColors();
   }
@@ -465,7 +514,21 @@ export class Sky3D {
     }, { passive: false });
     el.tabIndex = 0;
     el.setAttribute("aria-label", "3D 밤하늘. 화살표 키로 둘러보고, +와 -로 확대합니다.");
+    el.addEventListener("dblclick", (e) => {
+      if (this.morph < 0.5) return;
+      const r = el.getBoundingClientRect();
+      const i = this.nearestStar(e.clientX - r.left, e.clientY - r.top, 24);
+      if (i != null) { this.orbitStar(i); this.opts.onStar?.(i); }
+    });
     el.addEventListener("keydown", (e) => {
+      if (this.morph > 0.5) {
+        const k = { ArrowLeft: [-15, 0], ArrowRight: [15, 0], ArrowUp: [0, 10], ArrowDown: [0, -10] }[e.key];
+        if (k) this.orbitBy(...k);
+        else if (e.key === "+" || e.key === "=") this.dollyBy(0.7);
+        else if (e.key === "-") this.dollyBy(1 / 0.7);
+        else return;
+        e.preventDefault(); return;
+      }
       const step = this.fov / 10;
       if (e.key === "ArrowLeft") this.yaw = (this.yaw - step + 360) % 360;
       else if (e.key === "ArrowRight") this.yaw = (this.yaw + step) % 360;
@@ -523,13 +586,35 @@ export class Sky3D {
     if (c && this.isRevealed(c.id)) text = c.ko;
     if (s && (!c || this.isRevealed(c.id))) {
       const ly = SKY_STARS[s.i][4];
-      text = `${STAR_KO[s.name] || s.name}${ly ? `, ${ly.toLocaleString("ko-KR")}광년` : ""}${text ? ` (${text})` : ""}`;
+      text = `${starName(s.i)}${ly ? `, ${ly.toLocaleString("ko-KR")}광년` : ""}${text ? ` (${text})` : ""}`;
     }
-    this.overlay.style.cursor = c ? "pointer" : this.controls.enabled ? "grab" : "move";
+    this.overlay.style.cursor = c || s ? "pointer" : this.controls.enabled ? "grab" : "move";
     this.opts.onHover?.(text ? { text, x, y } : null);
   }
 
+  /* 화면에 보이는 별 중 가장 가까운 것 (밝은 별에 가중치) */
+  nearestStar(x, y, radius = 16, namedOnly = false) {
+    let best = null, bestD = radius;
+    const v = new THREE.Vector3(), lim = this.morph > 0.5 ? 6 : this.uniforms.uMagLimit.value;
+    for (let i = 0; i < SKY_STARS.length; i++) {
+      const mag = SKY_STARS[i][2];
+      if (mag > lim || (namedOnly && !NAMED_BY_INDEX.has(i)) || (this.morph < 0.5 && this.starAA[i].alt < 0)) continue;
+      const s = this.toScreen(this.starPos(i, v));
+      if (!s) continue;
+      const d = Math.hypot(s[0] - x, s[1] - y) - Math.max(0, 3 - mag) * 2;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+  }
+
+  lookAtStar(i) {
+    const aa = this.starAA[i];
+    this.selectedStar = i;
+    if (this.morph < 0.5) this.turnTo(aa.az, Math.max(5, Math.min(85, aa.alt)));
+  }
+
   handleClick(x, y) {
+    const star = this.nearestStar(x, y, 16, true); // 별 정보는 이름 있는 별만
     const c = this.nearestConstellation(x, y, 22);
     if (this.mode === "discover") {
       if (!c) { this.opts.onMiss?.(); return; }
@@ -540,8 +625,10 @@ export class Sky3D {
       }
     }
     this.selected = c ? c.id : null;
+    this.selectedStar = star;
     this.updateLineColors();
     this.opts.onSelect?.(c);
+    if (star != null && (!c || this.isRevealed(c.id))) this.opts.onStar?.(star);
   }
 
   /* ---------- 매 프레임 ---------- */
@@ -569,6 +656,9 @@ export class Sky3D {
     this.sun.visible = this.morph < 0.3 && this.sunAA?.alt > -2;
     this.moon.visible = this.morph < 0.3 && this.moonAA?.alt > -2;
     this.home.material.opacity = this.morph;
+    const mwR = R * (1.5 + 38 * this.morph);
+    this.mw.matrix.copy(this.eqToHorizon).multiply(new THREE.Matrix4().makeScale(mwR, mwR, mwR));
+    this.mw.matrixWorldNeedsUpdate = true;
 
     if (this.tween) {
       const t = this.tween; t.t = Math.min(1, t.t + dt * 1.6);
@@ -579,7 +669,7 @@ export class Sky3D {
 
     const cam = this.camera;
     if (this.orbit) {
-      const o = this.orbit; o.t = Math.min(1, o.t + dt * 0.45);
+      const o = this.orbit; o.t = Math.min(1, o.t + dt * (o.speed || 0.45));
       const e = o.t < 0.5 ? 4 * o.t ** 3 : 1 - (-2 * o.t + 2) ** 3 / 2;
       cam.position.lerpVectors(o.from, o.to, e);
       const tgt = o.exiting ? o.fromTarget.clone().lerp(dirFromAltAz(this.pitch, this.yaw).multiplyScalar(R), e) : o.fromTarget.clone().lerp(o.target, e);
@@ -671,8 +761,8 @@ export class Sky3D {
         if (!ly) continue;
         const s = this.toScreen(this.starPos(i, v));
         if (!s) continue;
-        const named = SKY_NAMED.find((n) => n[1] === i);
-        const text = `${named ? `${STAR_KO[named[0]] || named[0]} ` : ""}${ly.toLocaleString("ko-KR")}광년`;
+        const nm = starName(i);
+        const text = `${nm ? `${nm} ` : ""}${ly.toLocaleString("ko-KR")}광년`;
         const w = g.measureText(text).width;
         if (!fits(s[0] + 8 + w / 2, s[1] - 9, w, fs)) continue;
         g.fillStyle = "rgba(247,222,154,0.9)";
@@ -680,15 +770,28 @@ export class Sky3D {
       }
       const h = this.toScreen(new THREE.Vector3());
       if (h) { g.fillStyle = "rgba(255,226,160,0.95)"; g.fillText("태양과 지구", h[0] + 10, h[1]); }
-    } else if (!in3D && this.showNames && this.mode === "explore" && this.uniforms.uVis.value > 0.3) {
-      for (const [name, i] of SKY_NAMED) {
-        if (this.starAA[i].alt < 3 || SKY_STARS[i][2] > (this.camera.fov < 45 ? 1.8 : 1.1)) continue;
+    } else if (!in3D && this.showStarNames && this.mode === "explore" && this.uniforms.uVis.value > 0.3) {
+      // 확대할수록 더 어두운 별의 이름까지 보여 준다
+      const magCut = Math.min(this.uniforms.uMagLimit.value, this.camera.fov < 25 ? 4 : this.camera.fov < 45 ? 2.6 : this.camera.fov < 70 ? 1.6 : 1.1);
+      for (const [, i] of SKY_NAMED) {
+        if (this.starAA[i].alt < 3 || SKY_STARS[i][2] > magCut) continue;
         const s = this.toScreen(this.starPos(i, v));
         if (!s) continue;
-        const text = STAR_KO[name] || name, w = g.measureText(text).width;
+        const text = starName(i), w = g.measureText(text).width;
         if (!fits(s[0] + 8 + w / 2, s[1] - 9, w, fs)) continue;
         g.fillStyle = "rgba(200,212,240,0.75)";
         g.fillText(text, s[0] + 8, s[1] - 9);
+      }
+    }
+    // 고른 별 표시
+    if (this.selectedStar != null) {
+      const s = this.toScreen(this.starPos(this.selectedStar, v));
+      if (s) {
+        g.strokeStyle = "rgba(247,222,154,0.95)"; g.lineWidth = 1.5;
+        g.beginPath(); g.arc(s[0], s[1], 11, 0, Math.PI * 2); g.stroke();
+        g.textAlign = "left"; g.fillStyle = "rgba(247,222,154,1)";
+        g.font = `600 ${fs}px "IBM Plex Sans KR", sans-serif`;
+        g.fillText(starInfo(this.selectedStar).name, s[0] + 15, s[1] + 1);
       }
     }
     if (!in3D && this.moonAA?.alt > 0) {

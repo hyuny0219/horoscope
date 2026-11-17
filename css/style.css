@@ -272,7 +272,17 @@ input[type="date"], select {
 .compass, .zoom {
   position: absolute; z-index: 4; bottom: 1.25rem; display: flex; gap: 0.3rem;
 }
-.compass { left: var(--gutter); }
+.compass, .space-pad { left: var(--gutter); }
+.space-pad { position: absolute; z-index: 4; bottom: 1.25rem; display: flex; gap: 0.3rem; flex-wrap: wrap; max-width: calc(100% - 9rem); }
+.space-pad[hidden] { display: none; }
+.space-pad button {
+  min-width: 2.25rem; height: 2.25rem; padding: 0 0.6rem; cursor: pointer;
+  font-family: var(--sans); font-size: 0.85rem; color: var(--wall-ink);
+  background: rgba(10, 14, 28, 0.55); border: 1px solid var(--hair);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.space-pad button:hover { border-color: var(--wall-ink); }
+.space-pad button[aria-pressed="true"] { background: var(--solid); color: var(--on-solid); }
 .compass[hidden] { display: none; }
 .zoom { right: calc(var(--console-w) + 2 * var(--gutter)); }
 .compass button, .zoom button {
@@ -362,7 +372,14 @@ input[type="date"], select {
 .hint-text { margin: 0; font-size: 0.9rem; color: var(--brass-light); }
 .hint-text:empty { display: none; }
 .detail[hidden] { display: none; }
-.label-note:empty { display: none; }
+.label-note:empty, .label-body:empty, .label-sub:empty { display: none; }
+.search { display: flex; gap: 0.5rem; }
+.search input {
+  flex: 1; min-width: 0; font: inherit; font-size: 0.9rem; color: var(--wall-ink);
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(232, 233, 240, 0.35); border-radius: 2px; padding: 0.5rem 0.7rem;
+}
+.search input::placeholder { color: var(--wall-muted); }
+.star-detail { border-color: rgba(247, 222, 154, 0.4); }
 
 /* ---------- 바닥글 ---------- */
 .site-foot { padding: 2.5rem var(--gutter) 3rem; color: var(--wall-muted); font-size: var(--step--1); }

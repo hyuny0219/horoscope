@@ -54,7 +54,7 @@ class SkyView {
     const aa = (ra, dec) => toAltAz(ra, dec, lat, this.lst);
 
     this.stars = SKY_STARS.map(([ra, dec, mag, bv, ly]) => ({ ...aa(ra, dec), mag, bv, ly }));
-    this.named = SKY_NAMED.map(([name, i]) => ({ ...this.stars[i], name }));
+    this.named = SKY_NAMED.map(([name, i]) => ({ ...this.stars[i], name, i }));
     this.consts = CONSTELLATIONS.map((c) => {
       const segs = c.segs.map((seg) => seg.map((i) => this.stars[i]));
       const centers = c.centers.map(([ra, dec]) => aa(ra, dec));
@@ -182,12 +182,25 @@ class SkyView {
     const s = this.nearestNamedStar(x, y);
     let text = null;
     if (c && this.isRevealed(c.id)) text = c.ko;
-    if (s && (!c || this.isRevealed(c.id))) text = `${STAR_KO[s.name] || s.name}${text ? ` (${text})` : ""}`;
+    if (s && (!c || this.isRevealed(c.id))) text = `${starName(s.i)}${text ? ` (${text})` : ""}`;
     this.canvas.style.cursor = c ? "pointer" : this.zoom > 1 ? "grab" : "crosshair";
     if (text !== this.hoverText) { this.hoverText = text; this.opts.onHover?.(text ? { text, x, y } : null); }
   }
 
+  nearestStar(x, y, radius = 12) {
+    let best = null, bestD = radius;
+    this.stars.forEach((s, i) => {
+      if (s.alt < 0 || !NAMED_BY_INDEX.has(i)) return;
+      const [px, py] = this.project(s);
+      const d = Math.hypot(px - x, py - y) - Math.max(0, 3 - s.mag) * 1.5;
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return best;
+  }
+
   handleClick(x, y) {
+    const star = this.nearestStar(x, y);
+    if (star != null) setTimeout(() => { const k = this.consts.find((q) => q.segs.some((sg) => sg.includes(this.stars[star]))); if (!k || this.isRevealed(k.id)) this.opts.onStar?.(star); });
     const c = this.nearestConstellation(x, y, 20);
     if (this.mode === "discover") {
       if (!c) { this.opts.onMiss?.(); return; }
@@ -307,13 +320,13 @@ class SkyView {
       ctx.fillStyle = sel || k.id === this.flash ? "#F7DE9A" : "rgba(242,234,211,0.78)";
       ctx.fillText(k.ko, x, y);
     }
-    if (this.mode === "explore" && this.showNames && starVis > 0.3) {
+    if (this.mode === "explore" && this.showStarNames !== false && starVis > 0.3) {
       ctx.font = `400 ${fs * 0.85}px "IBM Plex Sans KR", sans-serif`;
       ctx.fillStyle = "rgba(200,212,240,0.75)";
       for (const s of this.named) {
-        if (s.alt < 5 || s.mag > (this.zoom > 1.6 ? 1.6 : 1.0)) continue;
+        if (s.alt < 5 || s.mag > (this.zoom > 2.5 ? 3 : this.zoom > 1.6 ? 2 : 1.0)) continue;
         const [x, y] = this.project(s);
-        const text = STAR_KO[s.name] || s.name, w = ctx.measureText(text).width;
+        const text = starName(s.i), w = ctx.measureText(text).width;
         if (!place(x + 7 + w / 2, y - 8, w, fs)) continue;
         ctx.fillText(text, x + 7 + w / 2, y - 8);
       }
