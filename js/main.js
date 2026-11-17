@@ -216,7 +216,7 @@
       b.setAttribute("aria-label", picked === i ? `${c.star} 카드: ${c.msg}` : `${i + 1}번 카드 뒤집기`);
       b.innerHTML = `<span class="star-card-inner">
         <span class="star-card-back" aria-hidden="true"><svg class="star-card-mark" viewBox="0 0 40 40" width="44" height="44"><path d="M20 2 L23.5 16.5 L38 20 L23.5 23.5 L20 38 L16.5 23.5 L2 20 L16.5 16.5 Z" fill="currentColor"/></svg></span>
-        <span class="star-card-front"><span class="star-card-star">${c.star}</span><span class="star-card-con">${c.con}</span><span class="star-card-msg">${c.msg}</span></span>
+        <span class="star-card-front"><span class="star-card-label">오늘의 별</span><span class="star-card-star">${c.star}</span><span class="star-card-con">${c.con}</span></span>
       </span>`;
       b.addEventListener("click", () => {
         const all = loadJSON(CARD_KEY, {});
@@ -226,6 +226,11 @@
       });
       row.appendChild(b);
     });
+    let out = $("#card-msg");
+    if (!out) { out = document.createElement("div"); out.id = "card-msg"; out.className = "card-msg"; row.after(out); }
+    const c = picked != null ? cards[picked] : null;
+    out.hidden = !c;
+    out.innerHTML = c ? `<p class="card-msg-head"><b>${c.star}</b> <span>${c.con}</span></p><p>${c.msg}</p>` : "";
   }
 
   /* ----- 궁합 ----- */

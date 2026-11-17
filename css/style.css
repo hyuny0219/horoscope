@@ -492,8 +492,16 @@ input[type="time"] {
   transform: rotateY(180deg); display: flex; flex-direction: column; gap: 0.4rem; padding: 1.2rem 1.1rem;
   background: radial-gradient(circle at 50% 18%, rgba(247, 222, 154, 0.25), transparent 40%), linear-gradient(170deg, #1A2246, #0A0E1E);
 }
-.star-card-star { font-family: var(--serif); font-size: 1.25rem; color: var(--brass-light); margin-top: 22%; }
+.star-card-front { justify-content: center; align-items: center; text-align: center; }
+.star-card-label { font-size: 0.7rem; letter-spacing: .12em; color: var(--wall-muted); }
+.star-card-star { font-family: var(--serif); font-size: 1.25rem; color: var(--brass-light); word-break: keep-all; overflow-wrap: anywhere; line-height: 1.3; }
 .star-card-con { font-size: 0.75rem; color: var(--wall-muted); }
+.card-msg { margin-top: 1rem; padding: 1rem 1.2rem; border: 1px solid rgba(247, 222, 154, 0.35); border-radius: 12px; background: rgba(14, 18, 34, 0.6); font-family: var(--serif); line-height: 1.75; animation: cardMsgIn .6s .35s both; }
+.card-msg[hidden] { display: none; }
+.card-msg p { margin: 0; }
+.card-msg-head { margin-bottom: .35rem !important; color: var(--brass-light); }
+.card-msg-head span { color: var(--wall-muted); font-size: .85rem; margin-left: .3rem; }
+@keyframes cardMsgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .star-card-msg { font-family: var(--serif); font-size: 0.92rem; line-height: 1.7; margin-top: 0.4rem; }
 
 /* 궁합 */
@@ -516,7 +524,6 @@ input[type="time"] {
 @media (max-width: 720px) {
   .chart-tiles, .r-charts, .r-cats, .r-todo { grid-template-columns: 1fr; }
   .card-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
-  .star-card-msg { font-size: 0.72rem; line-height: 1.5; }
   .star-card-star { font-size: 0.95rem; }
   .star-card-front { padding: 0.7rem 0.6rem; }
   .compat-out { grid-template-columns: 1fr; }

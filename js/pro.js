@@ -398,9 +398,18 @@ const Pro = (() => {
       <p>이 과제는 특히 <b>${HOUSE_TOPIC[nodeH].long}</b>의 영역에서 펼쳐집니다. ${HOUSE_FOCUS[nodeH]}</p>
       <p>반대편 남쪽 교점(${SIGNS[(nodeSign + 6) % 12].ko})은 이미 익숙하고 잘하는 것입니다. 그 편안함에만 머물지 말고 북쪽 교점의 방향으로 한 걸음씩 나아갈 때 삶이 깊어진다고 봅니다.</p>
       <p class="muted small">달의 교점은 점성술에서 '이번 생에서 자라야 할 방향'으로 읽는 자리입니다.</p>`);
+    const ascSign = N.asc ? N.asc.sign : N.sky.sun.sign, look = LOOK_SIGN[ascSign];
+    const lookIn = inHouse(1).filter((p) => LOOK_PLANET[p.id]);
+    const appearance = card("✨", "외모·첫인상", `${N.asc ? "상승궁" : "태양 별자리(시각을 넣으면 상승궁으로 더 정확해집니다)"} ${signTag(ascSign)} · 금성 ${signTag(V.sign)}`, `
+      <p><b>${look[0]}</b>입니다. ${look[1]}</p>
+      <p>${look[2]}</p>
+      <p class="la-fit"><b>매력 포인트</b> ${VENUS_STYLE[V.sign]}.</p>
+      ${lookIn.length ? `<ul class="la-pl">${lookIn.map((p) => `<li>${LOOK_PLANET[p.id]}.</li>`).join("")}</ul>` : ""}
+      <p>달이 ${SIGNS[N.sky.moon.sign].ko}에 있어, 편한 사람 앞에서는 <b>${LOOK_SIGN[N.sky.moon.sign][0]}</b>의 모습이 드러납니다. 처음 보는 사람과 가까운 사람이 느끼는 당신의 얼굴이 조금 다를 수 있습니다.</p>
+      <p class="muted small">점성술에서 겉모습은 태어날 때 동쪽 지평선에 떠오르던 별자리(상승궁)로, 매력과 스타일은 금성으로 봅니다.</p>`);
     return `<section class="life-areas">
       <h3 class="pro-h">타고난 운 <small>출생 차트에서 각 분야를 맡은 자리로 읽습니다${N.known ? "" : ". 태어난 시각이 없으면 태양 별자리를 기준으로 어림합니다"}</small></h3>
-      <div class="la-grid">${career}${money}${love}${health}${study}${social}${home}${travel}${talent}${destiny}</div>
+      <div class="la-grid">${appearance}${career}${money}${love}${health}${study}${social}${home}${travel}${talent}${destiny}</div>
       <p class="muted small">언제 기회가 오는지는 '1년' 탭과 '이번 달' 탭의 날짜를 함께 보세요. 운세는 재미와 자기 성찰을 위한 참고입니다.</p>
     </section>`;
   }
